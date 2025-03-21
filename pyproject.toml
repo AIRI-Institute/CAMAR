@@ -7,11 +7,27 @@ authors = [
     { name = "Square596", email = "artem211201@gmail.com" }
 ]
 requires-python = ">=3.10"
-dependencies = []
+dependencies = [
+    "jax>=0.5.3",
+]
 
 [project.scripts]
 contmapf = "contmapf:main"
 
+[project.optional-dependencies]
+cuda12 = [
+    "jax[cuda12]>=0.5.3",
+]
+torchrl = [
+    "torchrl>=0.7.2",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "ipykernel>=6.29.5",
+    "ipywidgets>=8.1.5",
+]
