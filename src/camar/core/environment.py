@@ -6,21 +6,16 @@ import jax.numpy as jnp
 from jax import Array
 from jax.typing import ArrayLike
 
+from camar.core.maps import RandomGrid
 from camar.core.maps.base import Map
 from camar.core.utils import Box, State
 
 
-class Env:
+class Camar:
     def __init__(
         self,
-        width: int = 19,
-        height: int = 19,
-        obstacle_density: float = 0.2,
-        num_agents: int = 8,
-        grain_factor: int = 4,
-        obstacle_size: float = 0.4,
-        goal_rad: float = 0.04,
-        window_rad: int = 2,
+        map_generator: Map = RandomGrid(),
+        window: float = 0.8,
         placeholder: float = 0.0,
         max_steps: int = 100,
         dt: float = 0.01,
@@ -31,47 +26,18 @@ class Env:
         max_obs: int | None = None,
         **kwargs,
     ):
-        self.grain_factor = grain_factor
-        self.obstacle_size = obstacle_size
-        self.goal_rad = goal_rad
-        self.window = obstacle_size * window_rad
-        self.num_agents = num_agents
-        self.width = width
-        self.height = height
+        self.map_generator = map_generator
+        self.window = window
 
         self.frameskip = frameskip
 
-        self.num_obstacles = int(obstacle_density * width * height)
-
         self.placeholder = placeholder
-        self.obs_placeholder = jnp.full(shape=(self.num_obstacles, 2), fill_value=placeholder)
 
-        self.num_landmarks = self.num_obstacles * 4 * (self.grain_factor - 1) + (width + height) * 2 * (self.grain_factor - 1)
-        self.num_entities = self.num_agents + self.num_landmarks
-
-        self.agent_range = jnp.arange(0, self.num_agents)
-        self.landmark_range = jnp.arange(self.num_agents, self.num_entities)
-        self.entity_range = jnp.arange(0, self.num_entities)
-
-        half_width = width * self.obstacle_size / 2
-        half_height = height * self.obstacle_size / 2
-
-        x_coords = jnp.linspace(
-            - half_width + self.obstacle_size / 2, # start
-            half_width - self.obstacle_size / 2, # end
-            width # map width
-        )
-        y_coords = jnp.linspace(
-            - half_height + self.obstacle_size / 2, # start
-            half_height - self.obstacle_size / 2, # end
-            height # map height
-        )
-
-        self.map_coordinates = jnp.stack(jnp.meshgrid(x_coords, y_coords), axis=-1).reshape(-1, 2)
-        self.border_landmarks = self.get_border_landmarks(width, height, half_width, half_height, self.grain_factor)
-
-        self.landmark_rad = self.obstacle_size / (2 * (self.grain_factor - 1))
-        self.agent_rad = (self.obstacle_size - 2 * self.landmark_rad) * 0.4
+        self.height = map_generator.height
+        self.width = map_generator.width
+        self.landmark_rad = map_generator.landmark_rad
+        self.agent_rad = map_generator.agent_rad
+        self.goal_rad = map_generator.goal_rad
 
         if max_obs is not None:
             self.max_obs = max_obs
@@ -86,8 +52,6 @@ class Env:
         self.action_spaces = Box(low=-1.0, high=1.0, shape=(self.num_agents, self.action_size))
         self.observation_spaces = Box(-jnp.inf, jnp.inf, shape=(self.num_agents, self.observation_size))
         self.action_decoder = self._decode_continuous_action
-        
-        self.colour = [(115, 243, 115) for i in jnp.arange(self.num_agents)] + [(64, 64, 64) for i in jnp.arange(self.num_landmarks)]
 
         # Environment parameters
         self.max_steps = max_steps
@@ -102,53 +66,18 @@ class Env:
         self.contact_force = contact_force
         self.contact_margin = contact_margin
     
-    def get_border_landmarks(self, width, height, half_width, half_height, grain_factor):
-        top_wall = jnp.stack(
-            (
-                jnp.linspace(- half_width, # start
-                             half_width, # end
-                             width * (grain_factor - 1), # num points
-                             endpoint=False),
-                jnp.full((width * (grain_factor - 1), ), # num points
-                         half_height), # y coord of the top wall
-            ),
-            axis=-1
-        )
-        right_wall = jnp.stack(
-            (
-                jnp.full((height * (grain_factor - 1), ), # num points
-                         half_width), # x coord of the right wall
-                jnp.linspace(half_height, # start
-                             - half_height, # end
-                             height * (grain_factor - 1), # num points
-                             endpoint=False),
-            ),
-            axis=-1
-        )
-        bottom_wall = jnp.stack(
-            (
-                jnp.linspace(half_width, # start
-                             - half_width, # end
-                             width * (grain_factor - 1), # num points
-                             endpoint=False),
-                jnp.full((width * (grain_factor - 1), ), # num points
-                         - half_height), # y coord of the bottom wall
-            ),
-            axis=-1
-        )
-        left_wall = jnp.stack(
-            (
-                jnp.full((height * (grain_factor - 1), ), # num points
-                         - half_width), # x coord of the left wall
-                jnp.linspace(- half_height, # start
-                             half_height, # end
-                             height * (grain_factor - 1), # num points
-                             endpoint=False),
-            ),
-            axis=-1
-        )
-        return jnp.concatenate([top_wall, right_wall, left_wall, bottom_wall])
-
+    @property
+    def num_agents(self) -> int:
+        return self.map_generator.num_agents
+    
+    @property
+    def num_landmarks(self) -> int:
+        return self.map_generator.num_landmarks
+    
+    @property
+    def num_entities(self) -> int:
+        return self.num_agents + self.num_landmarks
+    
     @partial(jax.jit, static_argnums=[0])
     def step(self, key: ArrayLike, state: State, actions: ArrayLike) -> Tuple[State, Array, Array, Array]:
         # actions.shape = (num_agents, 2)
@@ -180,7 +109,7 @@ class Env:
         # terminated = on_goal.all(axis=-1)
         # truncated = state.step >= self.max_steps
 
-        reward = self.rewards(state.agent_pos, state.landmark_pos, goal_dist)
+        reward = self.get_reward(state.agent_pos, state.landmark_pos, goal_dist)
 
         obs = self.get_obs(state.agent_pos, state.landmark_pos, state.goal_pos)
 
@@ -193,50 +122,18 @@ class Env:
     @partial(jax.jit, static_argnums=[0])
     def reset(self, key: ArrayLike) -> Tuple[State, Array, Array]:
         """Initialise with random positions"""
-        permuted_pos = jax.random.permutation(key, self.map_coordinates)
 
-        agent_pos = jax.lax.dynamic_slice(permuted_pos, # [0 : num_agents, 0 : 2]
-                                          start_indices=(0,               0),
-                                          slice_sizes=  (self.num_agents, 2))
-        
-        obstacle_pos = jax.lax.dynamic_slice(permuted_pos, # [num_agents : num_agents + num_obstacles, 0 : 2]
-                                             start_indices=(self.num_agents,    0),
-                                             slice_sizes=  (self.num_obstacles, 2))
-        
-        goal_pos = jax.lax.dynamic_slice(permuted_pos, # [num_agents + num_obstacles : 2 * num_agents + num_obstacles, 0 : 2]
-                                         start_indices=(self.num_agents + self.num_obstacles, 0),
-                                         slice_sizes=  (self.num_agents,                      2))
+        landmark_pos, agent_pos, goal_pos = self.map_generator.reset(key)
 
-        @partial(jax.vmap, in_axes=[0, None, None], out_axes=1)
-        def get_landmarks(obstacle, grain_factor, obstacle_size):
-            left_x, down_y = obstacle - obstacle_size / 2
-            right_x, up_y = obstacle + obstacle_size / 2
-            
-            up_landmarks = jnp.stack((jnp.linspace(left_x, right_x, grain_factor - 1, endpoint=False), jnp.full((grain_factor - 1, ), up_y)), axis=-1)
-            right_landmarks = jnp.stack((jnp.full((grain_factor - 1, ), right_x), jnp.linspace(up_y, down_y, grain_factor - 1, endpoint=False)), axis=-1)
-            down_landmarks = jnp.stack((jnp.linspace(right_x, left_x, grain_factor - 1, endpoint=False), jnp.full((grain_factor - 1, ), down_y)), axis=-1)
-            left_landmarks = jnp.stack((jnp.full((grain_factor - 1, ), left_x), jnp.linspace(down_y, up_y, grain_factor - 1, endpoint=False)), axis=-1)
-
-            return jnp.concatenate([up_landmarks, right_landmarks, down_landmarks, left_landmarks])
-        
-        landmark_pos = get_landmarks(obstacle_pos, self.grain_factor, self.obstacle_size).reshape(-1, 2)
-
-        all_landmark_pos = jnp.concatenate(
-            [
-                landmark_pos,
-                self.border_landmarks,
-            ]
-        )
-
-        obs = self.get_obs(agent_pos, all_landmark_pos, goal_pos)
-        # reward = self.rewards(agent_pos, all_landmark_pos, goal_pos)
+        obs = self.get_obs(agent_pos, landmark_pos, goal_pos)
+        # reward = self.get_reward(agent_pos, all_landmark_pos, goal_pos)
 
         state = State(
             agent_pos=agent_pos,
             agent_vel=jnp.zeros((self.num_agents, 2)),
             goal_pos=goal_pos,
             # obstacle_pos=obstacle_pos,
-            landmark_pos=all_landmark_pos,
+            landmark_pos=landmark_pos,
             # observation=obs,
             # reward=reward,
             # done=jnp.full((self.num_agents), False),
@@ -285,8 +182,8 @@ class Env:
 
         return obs.reshape(self.num_agents, self.observation_size)
 
-    def rewards(self, agent_pos: ArrayLike, landmark_pos: ArrayLike, goal_dist: ArrayLike) -> Array:
-        """Assign rewards for all agents"""
+    def get_reward(self, agent_pos: ArrayLike, landmark_pos: ArrayLike, goal_dist: ArrayLike) -> Array:
+        """Return rewards for all agents"""
 
         objects = jnp.vstack((agent_pos, landmark_pos))
 
@@ -312,9 +209,7 @@ class Env:
         return r.reshape(-1, 1)
 
     def _decode_continuous_action(self, actions: ArrayLike) -> Array:
-        """
-        actions (num_agents, 2)
-        """
+        """actions (num_agents, 2)"""
         return self.accel * actions
 
     def _world_step(self, key: ArrayLike, state: State, u: ArrayLike) -> Tuple[Array, Array]:

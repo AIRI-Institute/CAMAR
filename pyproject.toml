@@ -26,6 +26,9 @@ baselines = [
     "torchrl>=0.7.2",
     "tqdm>=4.67.1",
 ]
+matplotlib = [
+    "matplotlib>=3.10.1",
+]
 
 [build-system]
 requires = ["hatchling"]

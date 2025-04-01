@@ -14,7 +14,7 @@ class Map(ABC):
 
     @property
     @abstractmethod
-    def agent_radius(self) -> float: # TODO: various radiuses
+    def agent_rad(self) -> float: # TODO: various radiuses
         pass
 
     @property
