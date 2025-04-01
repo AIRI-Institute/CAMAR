@@ -1,10 +1,12 @@
 from functools import partial
+from typing import Tuple
 
 import jax
 import jax.numpy as jnp
-from camar.core.maps.base import Map
 from jax import Array
 from jax.typing import ArrayLike
+
+from camar.core.maps.base import Map
 
 
 class RandomGrid(Map):
@@ -53,7 +55,7 @@ class RandomGrid(Map):
         self.border_landmarks = self.get_border_landmarks(num_rows, num_cols, half_width, half_height, self.grain_factor)
     
     @property
-    def landmark_rad(self) -> float:  # noqa: D102
+    def landmark_rad(self) -> float:
         return self.obstacle_size / (2 * (self.grain_factor - 1))
 
     @property
@@ -64,7 +66,8 @@ class RandomGrid(Map):
     def goal_rad(self):
         return self.obstacle_size / 10
     
-    def reset(self, key: ArrayLike) -> Array:
+    @partial(jax.jit, static_argnums=[0])
+    def reset(self, key: ArrayLike) -> Tuple[Array, Array, Array]:
         permuted_pos = jax.random.permutation(key, self.map_coordinates)
 
         agent_pos = jax.lax.dynamic_slice(permuted_pos, # [0 : num_agents, 0 : 2]
