@@ -40,8 +40,8 @@ class Grid(Map):
 
         num_rows, num_cols = map_array.shape
 
-        map_idx_rows, map_idx_cols = jnp.meshgrid(jnp.arange(num_rows), jnp.arange(num_cols))
-        self.map_idx = jnp.stack((map_idx_rows, map_idx_cols), axis=2).reshape(-1, 2) # for random agents' positions
+        map_idx_rows, map_idx_cols = jnp.meshgrid(jnp.arange(num_cols), jnp.arange(num_rows))
+        self.map_idx = jnp.stack((map_idx_cols, map_idx_rows), axis=2).reshape(-1, 2) # for random agents' positions
         self.is_free = 1 - map_array.flatten()
 
         self.height = num_rows * obstacle_size
