@@ -7,14 +7,15 @@
   "remoteEnv": {
     "PATH": "${containerEnv:PATH}:/usr/local/cuda/bin",
     "LD_LIBRARY_PATH": "$LD_LIBRARY_PATH:/usr/local/cuda/lib64:/usr/local/cuda/extras/CUPTI/lib64",
-    "XLA_FLAGS": "--xla_gpu_cuda_data_dir=/usr/local/cuda"
+    "XLA_FLAGS": "--xla_gpu_cuda_data_dir=/usr/local/cuda",
+    "WANDB_API_KEY": "${localEnv:WANDB_API_KEY}"
   },
   "updateContentCommand": "bash .devcontainer/setup-container.sh",
   "postStartCommand": "export PATH=$PATH:/root/.local/bin && uv sync --all-extras",
   "features": {
         "git": "os-provided",
         "sshd": "latest"
-    },
+  },
   "customizations": {
     "vscode": {
       "extensions": [
@@ -24,7 +25,9 @@
         "ms-toolsai.jupyter-keymap",
         "ms-toolsai.jupyter-renderers",
         "ms-toolsai.vscode-jupyter-slideshow",
-        "ms-python.vscode-pylance"
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
+        "mintlify.document"
       ]
     }
   }

@@ -1,5 +1,5 @@
 [project]
-name = "contmapf"
+name = "camar"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -8,6 +8,7 @@ authors = [
 ]
 requires-python = ">=3.10"
 dependencies = [
+    "flax>=0.10.5",
     "jax>=0.5.3",
 ]
 
@@ -20,6 +21,10 @@ cuda12 = [
 ]
 torchrl = [
     "torchrl>=0.7.2",
+]
+baselines = [
+    "torchrl>=0.7.2",
+    "tqdm>=4.67.1",
 ]
 
 [build-system]

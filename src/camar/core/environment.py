@@ -1,28 +1,13 @@
 from functools import partial
-from typing import Dict, Tuple
+from typing import Tuple
 
-import chex
 import jax
 import jax.numpy as jnp
-from flax import struct
-from rl_env.core.utils import Box
+from jax import Array
+from jax.typing import ArrayLike
 
-
-@struct.dataclass
-class State:
-
-    agent_pos: chex.Array  # [num_entities, [x, y]]
-    agent_vel: chex.Array  # [n, [x, y]]
-
-    goal_pos: chex.Array  # [num_agents, [x, y]]
-    # obstacle_pos: chex.Array # [num_obstacles, [x, y]]
-    landmark_pos: chex.Array # [num_landmarks, [x, y]]
-
-    # observation: chex.Array # [num_agents, max_obs, 2]
-    # reward: chex.Array # [num_agents]
-
-    # done: chex.Array  # bool [num_agents, ]
-    step: int  # current step
+from camar.core.maps.base import Map
+from camar.core.utils import Box, State
 
 
 class Env:
@@ -40,10 +25,10 @@ class Env:
         max_steps: int = 100,
         dt: float = 0.01,
         damping: float = 0.25,
-        contact_force: float|int = 500,
+        contact_force: float = 500,
         contact_margin: float = 0.001,
         frameskip: int = 5,
-        max_obs: int = None,
+        max_obs: int | None = None,
         **kwargs,
     ):
         self.grain_factor = grain_factor
@@ -116,11 +101,6 @@ class Env:
         self.damping = damping
         self.contact_force = contact_force
         self.contact_margin = contact_margin
-
-    @property
-    def name(self) -> str:
-        """Environment name."""
-        return type(self).__name__
     
     def get_border_landmarks(self, width, height, half_width, half_height, grain_factor):
         top_wall = jnp.stack(
@@ -170,7 +150,7 @@ class Env:
         return jnp.concatenate([top_wall, right_wall, left_wall, bottom_wall])
 
     @partial(jax.jit, static_argnums=[0])
-    def step(self, key: chex.PRNGKey, state: State, actions: dict):
+    def step(self, key: ArrayLike, state: State, actions: ArrayLike) -> Tuple[State, Array, Array, Array]:
         # actions.shape = (num_agents, 2)
         u = self._decode_continuous_action(actions)
 
@@ -211,7 +191,7 @@ class Env:
         return state, obs, reward, done
 
     @partial(jax.jit, static_argnums=[0])
-    def reset(self, key: chex.PRNGKey) -> Tuple[chex.Array, State]:
+    def reset(self, key: ArrayLike) -> Tuple[State, Array, Array]:
         """Initialise with random positions"""
         permuted_pos = jax.random.permutation(key, self.map_coordinates)
 
@@ -271,11 +251,11 @@ class Env:
         return state, obs, done
     
     @partial(jax.vmap, in_axes=[None, 0, None])
-    def get_dist(self, a_pos: chex.Array, p_pos: chex.Array):
+    def get_dist(self, a_pos: ArrayLike, p_pos: ArrayLike) -> Array:
         return jnp.linalg.norm(a_pos - p_pos, axis=-1)
 
     @partial(jax.jit, static_argnums=[0])
-    def get_obs(self, agent_pos: chex.Array, landmark_pos: chex.Array, goal_pos: chex.Array) -> Dict[str, chex.Array]:
+    def get_obs(self, agent_pos: ArrayLike, landmark_pos: ArrayLike, goal_pos: ArrayLike) -> Array:
 
         objects = jnp.vstack((agent_pos, landmark_pos)) # (num_objects, 2)
 
@@ -305,7 +285,7 @@ class Env:
 
         return obs.reshape(self.num_agents, self.observation_size)
 
-    def rewards(self, agent_pos: chex.Array, landmark_pos: chex.Array, goal_dist: chex.Array) -> Dict[str, float]:
+    def rewards(self, agent_pos: ArrayLike, landmark_pos: ArrayLike, goal_dist: ArrayLike) -> Array:
         """Assign rewards for all agents"""
 
         objects = jnp.vstack((agent_pos, landmark_pos))
@@ -331,13 +311,13 @@ class Env:
         # r = 1.0 * on_goal.astype(jnp.float32) - 0.5 * collision.astype(jnp.float32)
         return r.reshape(-1, 1)
 
-    def _decode_continuous_action(self, actions: chex.Array) -> chex.Array:
+    def _decode_continuous_action(self, actions: ArrayLike) -> Array:
         """
         actions (num_agents, 2)
         """
         return self.accel * actions
 
-    def _world_step(self, key: chex.PRNGKey, state: State, u: chex.Array) -> Tuple[chex.Array, chex.Array]:
+    def _world_step(self, key: ArrayLike, state: State, u: ArrayLike) -> Tuple[Array, Array]:
         # apply agent physical controls
         key_noise = jax.random.split(key, self.num_agents)
         agent_force = self._apply_action_force(key_noise, u)
@@ -352,16 +332,12 @@ class Env:
 
     # gather agent action forces
     @partial(jax.vmap, in_axes=[None, 0, 0])
-    def _apply_action_force(
-        self,
-        key: chex.PRNGKey,
-        u: chex.Array,
-    ):
+    def _apply_action_force(self, key: ArrayLike, u: ArrayLike) -> Array:
         noise = jax.random.normal(key, shape=u.shape) * self.u_noise
         return u + noise
 
     @partial(jax.vmap, in_axes=[None, 0, 0, 0])
-    def _integrate_state(self, force, pos, vel):
+    def _integrate_state(self, force: ArrayLike, pos: ArrayLike, vel:ArrayLike) -> Tuple[Array, Array]:
         """integrate physical state"""
 
         pos += vel * self.dt
@@ -376,7 +352,7 @@ class Env:
 
         return pos, vel
 
-    def _apply_environment_force(self, agent_force: chex.Array, state: State):
+    def _apply_environment_force(self, agent_force: ArrayLike, state: State) -> Array:
 
         # agent - agent
         agent_idx_i, agent_idx_j = jnp.triu_indices(self.num_agents, k=1)
@@ -395,7 +371,7 @@ class Env:
         return agent_force
 
     @partial(jax.vmap, in_axes=[None, 0, 0, None])
-    def _get_collision_force(self, pos_a: chex.Array, pos_b: chex.Array, min_dist: float):
+    def _get_collision_force(self, pos_a: ArrayLike, pos_b: ArrayLike, min_dist: float) -> Array:
         delta_pos = pos_a - pos_b
 
         dist = jnp.linalg.norm(delta_pos, axis=-1)
