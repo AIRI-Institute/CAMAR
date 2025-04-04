@@ -23,10 +23,10 @@ class Map(ABC):
         pass
 
     def reset(self, key: ArrayLike) -> Tuple[Array, Array, Array, Array]: # Tuple[PRNGKey_goal, landmark_pos, agent_pos, goal_pos]
-        raise NotImplementedError(f"{self.__class__.__name__}.reset is not implemented.")
+        raise NotImplementedError(f"{self.__class__.__name__}.reset is not implemented. Must be implemented if lifelong=False.")
 
     def reset_lifelong(self, key: ArrayLike) -> Tuple[Array, Array, Array, Array]:  # Tuple[PRNGKey_goal, landmark_pos, agent_pos, goal_pos]
-        raise NotImplementedError(f"{self.__class__.__name__}.reset_lifelong is not implemented. Implement or set lifelong=False.")
+        raise NotImplementedError(f"{self.__class__.__name__}.reset_lifelong is not implemented. Must be implemented if lifelong=True.")
 
     def update_goals(self, keys: ArrayLike, goal_pos: ArrayLike, to_update: ArrayLike) -> Tuple[Array, Array]: # Tuple[PRNGKey_goal, goal_pos]
-        raise NotImplementedError(f"{self.__class__.__name__}.update_goals is not implemented. Implement or set lifelong=False.")
+        raise NotImplementedError(f"{self.__class__.__name__}.update_goals is not implemented. Implement or set lifelong=False. Must be implemented if lifelong=True.")
