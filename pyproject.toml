@@ -29,6 +29,9 @@ baselines = [
 matplotlib = [
     "matplotlib>=3.10.1",
 ]
+labmaze = [
+    "labmaze>=1.0.6",
+]
 
 [build-system]
 requires = ["hatchling"]

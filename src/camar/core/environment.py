@@ -18,12 +18,13 @@ class Camar:
         window: float = 0.8,
         placeholder: float = 0.0,
         max_steps: int = 100,
+        lifelong: bool = False,
+        frameskip: int = 2,
+        max_obs: int | None = None,
         dt: float = 0.01,
         damping: float = 0.25,
         contact_force: float = 500,
         contact_margin: float = 0.001,
-        frameskip: int = 5,
-        max_obs: int | None = None,
         **kwargs,
     ):
         self.map_generator = map_generator
@@ -48,7 +49,7 @@ class Camar:
 
         self.action_size = 2
         self.observation_size = self.max_obs * 2 + 2
-        
+
         self.action_spaces = Box(low=-1.0, high=1.0, shape=(self.num_agents, self.action_size))
         self.observation_spaces = Box(-jnp.inf, jnp.inf, shape=(self.num_agents, self.observation_size))
         self.action_decoder = self._decode_continuous_action
@@ -65,19 +66,23 @@ class Camar:
         self.damping = damping
         self.contact_force = contact_force
         self.contact_margin = contact_margin
-    
+
+        # lifelong
+        self.map_reset = map_generator.reset_lifelong if lifelong else map_generator.reset
+        self.update_goals = map_generator.update_goals if lifelong else lambda keys, goal_pos, to_update: (keys, goal_pos)
+
     @property
     def num_agents(self) -> int:
         return self.map_generator.num_agents
-    
+
     @property
     def num_landmarks(self) -> int:
         return self.map_generator.num_landmarks
-    
+
     @property
     def num_entities(self) -> int:
         return self.num_agents + self.num_landmarks
-    
+
     @partial(jax.jit, static_argnums=[0])
     def step(self, key: ArrayLike, state: State, actions: ArrayLike) -> Tuple[State, Array, Array, Array]:
         # actions.shape = (num_agents, 2)
@@ -96,7 +101,7 @@ class Camar:
                  agent_vel=agent_vel,
             )
             return (key, state, u), _
-        
+
         (key, state, u), _ = jax.lax.scan(frameskip, init=(key_w, state, u), xs=None, length=self.frameskip + 1)
 
         goal_dist = jnp.linalg.norm(state.agent_pos - state.goal_pos, axis=-1) # (num_agents, )
@@ -111,11 +116,15 @@ class Camar:
 
         reward = self.get_reward(state.agent_pos, state.landmark_pos, goal_dist)
 
-        obs = self.get_obs(state.agent_pos, state.landmark_pos, state.goal_pos)
+        goal_keys, goal_pos = self.update_goals(state.goal_keys, state.goal_pos, on_goal)
 
         state = state.replace(
-            step=state.step + 1,
+            goal_pos = goal_pos,
+            step = state.step + 1,
+            goal_keys = goal_keys,
         )
+
+        obs = self.get_obs(state.agent_pos, state.landmark_pos, state.goal_pos)
 
         return state, obs, reward, done
 
@@ -123,22 +132,18 @@ class Camar:
     def reset(self, key: ArrayLike) -> Tuple[State, Array, Array]:
         """Initialise with random positions"""
 
-        landmark_pos, agent_pos, goal_pos = self.map_generator.reset(key)
+        goal_keys, landmark_pos, agent_pos, goal_pos = self.map_reset(key)
 
         obs = self.get_obs(agent_pos, landmark_pos, goal_pos)
         # reward = self.get_reward(agent_pos, all_landmark_pos, goal_pos)
 
         state = State(
-            agent_pos=agent_pos,
-            agent_vel=jnp.zeros((self.num_agents, 2)),
-            goal_pos=goal_pos,
-            # obstacle_pos=obstacle_pos,
-            landmark_pos=landmark_pos,
-            # observation=obs,
-            # reward=reward,
-            # done=jnp.full((self.num_agents), False),
-            # done=jnp.array([False]),
-            step=0,
+            agent_pos = agent_pos,
+            agent_vel = jnp.zeros((self.num_agents, 2)),
+            goal_pos = goal_pos,
+            landmark_pos = landmark_pos,
+            step = 0,
+            goal_keys = goal_keys,
         )
 
         goal_dist = jnp.linalg.norm(state.agent_pos - state.goal_pos, axis=-1)
@@ -146,7 +151,7 @@ class Camar:
         done = on_goal.all(axis=-1)
 
         return state, obs, done
-    
+
     @partial(jax.vmap, in_axes=[None, 0, None])
     def get_dist(self, a_pos: ArrayLike, p_pos: ArrayLike) -> Array:
         return jnp.linalg.norm(a_pos - p_pos, axis=-1)
@@ -166,10 +171,10 @@ class Camar:
 
         ego_objects = objects[nearest_ids] - agent_pos[:, None, :] # (num_agents, self.max_obs, 2)
 
-        obs = jnp.where(nearest_dists[:, :, None] < self.window, 
+        obs = jnp.where(nearest_dists[:, :, None] < self.window,
                         ego_objects * (1.0 / self.window - 1 / nearest_dists[:, :, None]),
                         self.placeholder)
-        
+
         ego_goal = goal_pos - agent_pos # [num_agents, 2]
 
         goal_dist = jnp.linalg.norm(ego_goal, axis=-1)

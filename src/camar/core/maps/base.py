@@ -22,6 +22,11 @@ class Map(ABC):
     def goal_rad(self) -> float: # TODO: various radiuses
         pass
 
-    @abstractmethod
-    def reset(self, key: ArrayLike) -> Tuple[Array, Array, Array]: # Tuple[landmark_pos, agent_pos, goal_pos]
-        pass
+    def reset(self, key: ArrayLike) -> Tuple[Array, Array, Array, Array]: # Tuple[PRNGKey_goal, landmark_pos, agent_pos, goal_pos]
+        raise NotImplementedError(f"{self.__class__.__name__}.reset is not implemented.")
+
+    def reset_lifelong(self, key: ArrayLike) -> Tuple[Array, Array, Array, Array]:  # Tuple[PRNGKey_goal, landmark_pos, agent_pos, goal_pos]
+        raise NotImplementedError(f"{self.__class__.__name__}.reset_lifelong is not implemented. Implement or set lifelong=False.")
+
+    def update_goals(self, keys: ArrayLike, goal_pos: ArrayLike, to_update: ArrayLike) -> Tuple[Array, Array]: # Tuple[PRNGKey_goal, goal_pos]
+        raise NotImplementedError(f"{self.__class__.__name__}.update_goals is not implemented. Implement or set lifelong=False.")

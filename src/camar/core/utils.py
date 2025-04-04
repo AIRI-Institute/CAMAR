@@ -9,26 +9,26 @@ from flax import struct
 
 
 class Box:
-	"""
-	Minimal jittable class for array-shaped gymnax spaces.
-	"""
-	def __init__(
-		self,
-		low: float,
-		high: float,
-		shape: Tuple[int],
-		dtype: jnp.dtype = jnp.float32,
-	):
-		self.low = low
-		self.high = high
-		self.shape = shape
-		self.dtype = dtype
+    """
+    Minimal jittable class for array-shaped gymnax spaces.
+    """
+    def __init__(
+        self,
+        low: float,
+        high: float,
+        shape: Tuple[int],
+        dtype: jnp.dtype = jnp.float32,
+    ):
+        self.low = low
+        self.high = high
+        self.shape = shape
+        self.dtype = dtype
 
-	def sample(self, rng: ArrayLike) -> Array:
-		"""Sample random action uniformly from 1D continuous range."""
-		return jax.random.uniform(
-			rng, shape=self.shape, minval=self.low, maxval=self.high
-		).astype(self.dtype)
+    def sample(self, rng: ArrayLike) -> Array:
+        """Sample random action uniformly from 1D continuous range."""
+        return jax.random.uniform(
+            rng, shape=self.shape, minval=self.low, maxval=self.high
+        ).astype(self.dtype)
 
 
 @struct.dataclass
@@ -45,4 +45,6 @@ class State:
     # reward: ArrayLike # [num_agents]
 
     # done: ArrayLike  # bool [num_agents, ]
-    step: int  # current step
+    step: int # current step
+
+    goal_keys: ArrayLike # [num_agents, ] or [] - jax keys for the controllable goal generation (keys are updated only for agents on_goal in lifelong)

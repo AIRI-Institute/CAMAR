@@ -53,7 +53,7 @@ class RandomGrid(Map):
         # coordinates for sampling
         self.map_coordinates = jnp.stack(jnp.meshgrid(x_coords, y_coords), axis=-1).reshape(-1, 2) # cell centers of the whole map
         self.border_landmarks = self.get_border_landmarks(num_rows, num_cols, half_width, half_height, self.grain_factor)
-    
+
     @property
     def landmark_rad(self) -> float:
         return self.obstacle_size / (2 * (self.grain_factor - 1))
@@ -61,27 +61,27 @@ class RandomGrid(Map):
     @property
     def agent_rad(self):
         return (self.obstacle_size - 2 * self.landmark_rad) * 0.4
-    
+
     @property
     def goal_rad(self):
-        return self.obstacle_size / 10
-    
+        return self.agent_rad / 2.5
+
     @partial(jax.jit, static_argnums=[0])
-    def reset(self, key: ArrayLike) -> Tuple[Array, Array, Array]:
+    def reset(self, key: ArrayLike) -> Tuple[Array, Array, Array, Array]:
         permuted_pos = jax.random.permutation(key, self.map_coordinates)
 
         agent_pos = jax.lax.dynamic_slice(permuted_pos, # [0 : num_agents, 0 : 2]
                                           start_indices=(0,               0),
                                           slice_sizes=  (self.num_agents, 2))
-        
+
         obstacle_pos = jax.lax.dynamic_slice(permuted_pos, # [num_agents : num_agents + num_obstacles, 0 : 2]
                                              start_indices=(self.num_agents,    0),
                                              slice_sizes=  (self.num_obstacles, 2))
-        
+
         goal_pos = jax.lax.dynamic_slice(permuted_pos, # [num_agents + num_obstacles : 2 * num_agents + num_obstacles, 0 : 2]
                                          start_indices=(self.num_agents + self.num_obstacles, 0),
                                          slice_sizes=  (self.num_agents,                      2))
-        
+
         landmark_pos = self.get_landmarks(obstacle_pos, self.grain_factor, self.obstacle_size).reshape(-1, 2)
 
         all_landmark_pos = jnp.concatenate(
@@ -91,8 +91,8 @@ class RandomGrid(Map):
             ],
         )
 
-        return all_landmark_pos, agent_pos, goal_pos
-    
+        return key, all_landmark_pos, agent_pos, goal_pos
+
     def get_border_landmarks(self, num_rows, num_cols, half_width, half_height, grain_factor):
         top_wall = jnp.stack(
             (
@@ -142,7 +142,7 @@ class RandomGrid(Map):
                                 right_wall,
                                 left_wall,
                                 bottom_wall])
-    
+
     @partial(jax.vmap, in_axes=[None, 0, None, None], out_axes=1)
     def get_landmarks(self, obstacle, grain_factor, obstacle_size):
         left_x, down_y = obstacle - obstacle_size / 2
