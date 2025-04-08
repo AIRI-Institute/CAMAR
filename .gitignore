@@ -1,3 +1,7 @@
+baselines/data/
+baselines/env_viz/
+baselines/img/
+
 # wandb runs
 wandb/
 
