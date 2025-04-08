@@ -1,13 +1,14 @@
 import os
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
 import dataclasses
 
+import matplotlib.pyplot as plt
+import pandas as pd
 import torch
-import wandb
 from tensordict.nn import TensorDictModule
 from tensordict.nn.distributions import NormalParamExtractor
 from torchrl.collectors import SyncDataCollector
@@ -19,10 +20,14 @@ from torchrl.modules import MultiAgentMLP, ProbabilisticActor, TanhNormal
 from torchrl.objectives import ClipPPOLoss, ValueEstimators
 from tqdm.auto import tqdm
 
-from rl_env.core.environment import Env
-from rl_env.render.renderer import SVG_Visualizer
-from rl_env.torchrl.torchrl_wrapper import MyEnvWrapper
+import wandb
+from camar.core.environment import Camar
+from camar.core.maps import RandomGrid
+from camar.render import SVG_Visualizer
+from camar.torchrl.torchrl_wrapper import MyEnvWrapper
 
+
+os.chdir(os.getcwd() + "/baselines/")
 torch.manual_seed(911)
 
 # parameters
@@ -70,22 +75,30 @@ loss_critic_type = "smooth_l2"
 
 wandb_name = "MAPPO1_collision_2.0_goal_dist_log_0.01"
 
-width = 10
-height = 10
+num_rows = 10
+num_cols = 10
 obstacle_density = 0.0
 num_agents = 5
 grain_factor = 6
 
-env = Env(
-    width=width,
-    height=height,
-    obstacle_density=obstacle_density,
-    num_agents=num_agents,
-    grain_factor=grain_factor,
+window = 0.8
+
+map_generator = RandomGrid(
+    num_rows = num_rows,
+    num_cols = num_cols,
+    obstacle_density = obstacle_density,
+    num_agents = num_agents,
+    grain_factor = grain_factor,
+)
+
+env = Camar(
+    map_generator = map_generator,
+    window = window,
+    lifelong = False,
+    max_steps = 900,
     contact_force=500,
     contact_margin=1e-3,
     dt=0.01,
-    max_steps=900,
     frameskip=7,
     max_obs=8,
 )
@@ -199,8 +212,8 @@ pbar = tqdm(total=n_iters, desc="episode_reward_mean = 0")
 wandb.init(
     project="myenv_xppo",
     config={
-        "width": width,
-        "height": height,
+        "num_rows": num_rows,
+        "num_cols": num_cols,
         "obstacle_density": obstacle_density,
         "num_agents": num_agents,
         "grain_factor": grain_factor,
@@ -221,6 +234,12 @@ wandb.init(
     name=wandb_name,
 )
 
+plot_data = {
+    "env_steps": [],
+    "ep_rew_mean": [],
+}
+
+env_steps = 0
 for iter, tensordict_data in enumerate(collector):
     tensordict_data.set(
         ("next", "agents", "done"),
@@ -292,10 +311,17 @@ for iter, tensordict_data in enumerate(collector):
     # episode_reward_mean = (
     # 	tensordict_data.get(("next", "agents", "episode_reward")).mean().item()
     # )
+
+    env_steps += data_view.shape[0]
+
+    plot_data["env_steps"].append(env_steps)
+    plot_data["ep_rew_mean"].append(episode_reward_mean)
+
     wandb.log(
         {
             "ep_rew_mean": episode_reward_mean,
             "iter": iter,
+            "env_steps": env_steps,
         }
     )
 
@@ -305,6 +331,18 @@ for iter, tensordict_data in enumerate(collector):
     pbar.update()
 
 wandb.finish()
+
+plot_df = pd.DataFrame(plot_data)
+
+fig = plt.figure()
+ax = fig.add_subplot()
+
+ax.plot(plot_df["env_steps"], plot_df["ep_rew_mean"])
+ax.set_xlabel("env_steps")
+ax.set_ylabel("ep_rew_mean")
+
+fig.savefig(f"img/ep_rew_mean_{model_name}.png")
+plot_df.to_csv(f"data/ep_rew_mean_{model_name}.csv")
 
 
 def get_state_from_envs(state, env_id):
@@ -319,16 +357,14 @@ def rendering_callback(env, td):
     env.state_seq.append(get_state_from_envs(env._state, 0))
 
 
-viz_env = Env(
-    width=width,
-    height=height,
-    obstacle_density=obstacle_density,
-    num_agents=num_agents,
-    grain_factor=grain_factor,
+viz_env = Camar(
+    map_generator = map_generator,
+    window = window,
+    lifelong = False,
+    max_steps = 900,
     contact_force=500,
     contact_margin=1e-3,
     dt=0.01,
-    max_steps=env.max_steps,
     frameskip=7,
     max_obs=8,
 )
@@ -355,4 +391,4 @@ with torch.no_grad():
     )
 
 
-SVG_Visualizer(viz_env._env, viz_env.state_seq).save_svg("example.svg")
+SVG_Visualizer(viz_env._env, viz_env.state_seq).save_svg(f"env_viz/example_{model_name}.svg")

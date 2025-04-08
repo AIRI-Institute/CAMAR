@@ -23,8 +23,11 @@ torchrl = [
     "torchrl>=0.7.2",
 ]
 baselines = [
+    "matplotlib>=3.10.1",
+    "pandas>=2.2.3",
     "torchrl>=0.7.2",
     "tqdm>=4.67.1",
+    "wandb>=0.19.9",
 ]
 matplotlib = [
     "matplotlib>=3.10.1",
