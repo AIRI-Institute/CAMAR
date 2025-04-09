@@ -6,15 +6,15 @@ import jax.numpy as jnp
 from jax import Array
 from jax.typing import ArrayLike
 
-from camar.core.maps import RandomGrid
-from camar.core.maps.base import Map
-from camar.core.utils import Box, State
+from camar.maps import RandomGrid
+from camar.maps.base import BaseMap
+from camar.utils import Box, State
 
 
 class Camar:
     def __init__(
         self,
-        map_generator: Map = RandomGrid(),
+        map_generator: BaseMap = RandomGrid(),
         window: float = 0.8,
         placeholder: float = 0.0,
         max_steps: int = 100,

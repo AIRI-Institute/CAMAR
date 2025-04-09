@@ -1,6 +1,6 @@
 import labmaze
 
-from camar.core.maps.string_grid import StringGrid
+from camar.maps.string_grid import StringGrid
 
 
 class LabMaze(StringGrid):

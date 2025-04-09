@@ -6,7 +6,7 @@ import jax.numpy as jnp
 from jax import Array
 from jax.typing import ArrayLike
 
-from camar.core.maps.base import BaseMap
+from camar.maps.base import BaseMap
 
 
 def convert_map_str(map_str, remove_border, add_border):
