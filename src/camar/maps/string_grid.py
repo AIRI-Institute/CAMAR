@@ -28,7 +28,7 @@ class StringGrid(BaseMap):
         map_str: str,
         num_agents: int = 10,
         obstacle_size: float = 0.1,
-        agent_size: float = 0.09,
+        agent_size: float = 0.04,
         remove_border: bool = False,
         add_border: bool = True,
     ) -> BaseMap:
