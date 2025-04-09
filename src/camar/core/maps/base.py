@@ -5,7 +5,7 @@ from jax import Array
 from jax.typing import ArrayLike
 
 
-class Map(ABC):
+class BaseMap(ABC):
 
     @property
     @abstractmethod

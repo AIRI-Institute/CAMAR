@@ -1,9 +1,9 @@
 import labmaze
 
-from camar.core.maps.grid import Grid
+from camar.core.maps.string_grid import StringGrid
 
 
-class LabMaze(Grid):
+class LabMaze(StringGrid):
     def __init__(
         self,
         num_agents: int = 10,

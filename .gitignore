@@ -2,6 +2,9 @@ baselines/data/
 baselines/env_viz/
 baselines/img/
 
+*/.DS_Store
+.DS_Store
+
 # wandb runs
 wandb/
 

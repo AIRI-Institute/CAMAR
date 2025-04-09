@@ -6,10 +6,10 @@ import jax.numpy as jnp
 from jax import Array
 from jax.typing import ArrayLike
 
-from camar.core.maps.base import Map
+from camar.core.maps.base import BaseMap
 
 
-class RandomGrid(Map):
+class RandomGrid(BaseMap):
     """The `RandomGrid` class generates a random grid map with obstacles, agents, and goals."""
 
     def __init__(
@@ -20,7 +20,7 @@ class RandomGrid(Map):
         num_agents: int = 8,
         grain_factor: int = 4,
         obstacle_size: float = 0.4,
-    ) -> Map:
+    ) -> BaseMap:
         self.num_rows = num_rows
         self.num_cols = num_cols
         self.obstacle_density = obstacle_density

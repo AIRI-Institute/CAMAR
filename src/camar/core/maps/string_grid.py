@@ -6,7 +6,7 @@ import jax.numpy as jnp
 from jax import Array
 from jax.typing import ArrayLike
 
-from camar.core.maps.base import Map
+from camar.core.maps.base import BaseMap
 
 
 def convert_map_str(map_str, remove_border, add_border):
@@ -21,7 +21,7 @@ def convert_map_str(map_str, remove_border, add_border):
     return map_array
 
 
-class Grid(Map):
+class StringGrid(BaseMap):
     """fixed obstacles' positions, random agents' positions"""
     def __init__(
         self,
@@ -31,7 +31,7 @@ class Grid(Map):
         agent_size: float = 0.09,
         remove_border: bool = False,
         add_border: bool = True,
-    ) -> Map:
+    ) -> BaseMap:
         self.num_agents = num_agents
         self.obstacle_size = obstacle_size
         self.agent_size = agent_size
