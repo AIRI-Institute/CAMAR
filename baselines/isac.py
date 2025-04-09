@@ -32,15 +32,15 @@ model_name = "ISAC"
 
 device = torch.device("cuda:0")
 
-frames_per_batch = 27_000
+frames_per_batch = 54_000
 n_iters = 150
 total_frames = frames_per_batch * n_iters
 
 # Replay buffer
 memory_size = 1_000_000
 
-n_optimiser_steps = 200
-train_batch_size = 500
+n_optimiser_steps = 100
+train_batch_size = 5000
 lr = 3e-4
 max_grad_norm = 1.0
 
@@ -243,7 +243,7 @@ wandb.init(
 
 plot_data = {
     "env_steps": [],
-    "mean_ep_rew": [],
+    "ep_rew_mean": [],
 }
 
 env_steps = 0
@@ -291,7 +291,7 @@ for iteration, batch in enumerate(collector):
     env_steps += data_view.shape[0]
 
     plot_data["env_steps"].append(env_steps)
-    plot_data["mean_ep_rew"].append(episode_reward_mean)
+    plot_data["ep_rew_mean"].append(episode_reward_mean)
 
     wandb.log({
         "ep_rew_mean": episode_reward_mean,
