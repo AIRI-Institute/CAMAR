@@ -15,7 +15,7 @@
   "containerUser": "root",
   "updateRemoteUserUID": true,
   "updateContentCommand": "bash .devcontainer/setup-container.sh",
-  "postStartCommand": "export PATH=$PATH:/root/.local/bin && uv sync --all-extras",
+  "postStartCommand": "export PATH=$PATH:/root/.local/bin && uv sync --all-extras --cache-dir $UV_CACHE_DIR",
   "features": {
         "git": "os-provided",
         "sshd": "latest"

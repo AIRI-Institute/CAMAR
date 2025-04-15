@@ -7,44 +7,7 @@ from jax import Array
 from jax.typing import ArrayLike
 
 from camar.maps.base import BaseMap
-
-
-def map_str2array(map_str, remove_border, add_border):
-    map_array = jnp.array([[1 if char in set("@*#") else 0 for char in line] for line in map_str.split("\n") if line])
-
-    if remove_border:
-        map_array = map_array[1:-1, 1:-1]
-
-    if add_border:
-        map_array = jnp.pad(map_array, pad_width=[(1, 1), (1, 1)], constant_values=[(1, 1), (1, 1)])
-
-    return map_array
-
-def idx2pos(idx_x, idx_y, obstacle_size, height, width):
-    coord_x = idx_x * obstacle_size - height / 2 + obstacle_size / 2
-    coord_y = idx_y * obstacle_size - width / 2 + obstacle_size / 2
-
-    return jnp.stack((coord_y, coord_x), axis=1)
-
-def parse_map_array(map_array, obstacle_size):
-    num_rows, num_cols = map_array.shape
-
-    map_idx_rows, map_idx_cols = jnp.meshgrid(jnp.arange(num_cols), jnp.arange(num_rows))
-
-    height = num_rows * obstacle_size
-    width = num_cols * obstacle_size
-
-    # obstacles
-    landmark_idx_x, landmark_idx_y = jnp.nonzero(map_array)
-    landmark_pos = idx2pos(landmark_idx_x, landmark_idx_y, obstacle_size, height, width)
-
-    # free cells
-    map_idx = jnp.stack((map_idx_cols, map_idx_rows), axis=2).reshape(-1, 2) # for random agent and goal positions
-    is_free = ~map_array.flatten().astype(jnp.bool_)
-    free_idx = map_idx[is_free, :]
-    free_pos = idx2pos(free_idx[:, 0], free_idx[:, 1], obstacle_size, height, width)
-
-    return landmark_pos, free_pos, height, width
+from camar.maps.utils import idx2pos, map_str2array, parse_map_array
 
 
 class StringGrid(BaseMap):
