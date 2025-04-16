@@ -9,7 +9,7 @@
     "LD_LIBRARY_PATH": "$LD_LIBRARY_PATH:/usr/local/cuda/lib64:/usr/local/cuda/extras/CUPTI/lib64",
     "XLA_FLAGS": "--xla_gpu_cuda_data_dir=/usr/local/cuda",
     "WANDB_API_KEY": "${localEnv:WANDB_API_KEY}",
-    "UV_CACHE_DIR": "${workspaceFolder}/.cache/uv"
+    "UV_CACHE_DIR": ".cache/uv"
   },
   "remoteUser": "root",
   "containerUser": "root",

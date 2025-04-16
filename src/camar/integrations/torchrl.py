@@ -11,9 +11,11 @@ from torchrl.envs.libs.jax_utils import (
     _tree_flatten,
 )
 from torchrl.envs.utils import MarlGroupMapType, _classproperty, check_marl_grouping
+from camar import camar_v0
+from typing import Optional
 
 
-class MyEnvWrapper(_EnvWrapper):
+class CamarWrapper(_EnvWrapper):
     _jax = None
 
     @_classproperty
@@ -26,11 +28,20 @@ class MyEnvWrapper(_EnvWrapper):
         cls._jax = jax
         return jax
 
-    def __init__(self, env=None, **kwargs):
+    def __init__(self, seed, device, batch_size, env = None, **kwargs):
         if env is not None:
             kwargs["env"] = env
 
+        if isinstance(batch_size, int):
+            batch_size = [batch_size]
+
+        kwargs["device"] = device
+        kwargs["batch_size"] = batch_size
+        kwargs["seed"] = seed
+
         super().__init__(**kwargs)
+
+        self.set_seed(seed)
 
     def _check_kwargs(self, kwargs: dict):
         if "env" not in kwargs:
@@ -39,10 +50,11 @@ class MyEnvWrapper(_EnvWrapper):
     def _build_env(
         self,
         env,
+        **kwargs,
     ):
         return env
 
-    def _make_state_spec(self, env):  # noqa: F821
+    def _make_state_spec(self, env):
         jax = self.jax
 
         key = jax.random.PRNGKey(0)
@@ -125,7 +137,7 @@ class MyEnvWrapper(_EnvWrapper):
     #     # state = _tree_reshape(state, self.batch_size)
     #     return state
 
-    def _init_env(self) -> int | None:
+    def _init_env(self):
         jax = self.jax
         self._key = None
         self._vmap_jit_env_reset = jax.vmap(self._env.reset)
@@ -172,8 +184,8 @@ class MyEnvWrapper(_EnvWrapper):
         jax = self.jax
 
         # convert tensors to ndarrays
-        # state = _tensordict_to_object(tensordict.get("state"), self._state_example)
 
+        # state = _tensordict_to_object(tensordict.get("state"), self._state_example)
         action = _tensor_to_ndarray(tensordict.get(("agents", "action")))
 
         # flatten batch size
@@ -208,3 +220,81 @@ class MyEnvWrapper(_EnvWrapper):
             device=self.device,
         )
         return tensordict_out
+
+
+class CamarEnv(CamarWrapper):
+
+    def __init__(
+        self,
+        map_generator,
+        num_envs,
+        seed,
+        max_steps = 1000,
+        window = 0.8,
+        placeholder = 0.0,
+        frameskip = 2,
+        max_obs = None,
+        dt = 0.01,
+        damping = 0.25,
+        contact_force = 500,
+        contact_margin = 0.001,
+        **map_kwargs,
+    ):
+        batch_size = [num_envs]
+
+        super().__init__(
+            batch_size=batch_size,
+            map_generator=map_generator,
+            num_envs=num_envs,
+            max_steps=max_steps,
+            seed=seed,
+            window=window,
+            placeholder=placeholder,
+            frameskip=frameskip,
+            max_obs=max_obs,
+            dt=dt,
+            damping=damping,
+            contact_force=contact_force,
+            contact_margin=contact_margin,
+            **map_kwargs,
+        )
+
+    def _check_kwargs(self, kwargs: dict):
+        if "map_generator" not in kwargs:
+            raise TypeError("Could not find environment key 'map_generator' in kwargs.")
+        if "num_envs" not in kwargs:
+            raise TypeError("Could not find environment key 'num_envs' in kwargs.")
+
+    def _build_env(
+        self,
+        map_generator,
+        num_envs,
+        seed,
+        max_steps,
+        window,
+        placeholder,
+        frameskip,
+        max_obs,
+        dt,
+        damping,
+        contact_force,
+        contact_margin,
+        **map_kwargs,
+    ):
+        self.map_generator = map_generator
+
+        env = camar_v0(
+            map_generator,
+            window=window,
+            placeholder=placeholder,
+            max_steps=max_steps,
+            frameskip=frameskip,
+            max_obs=max_obs,
+            dt=dt,
+            damping=damping,
+            contact_force=contact_force,
+            contact_margin=contact_margin,
+            **map_kwargs,
+        )
+
+        return super()._build_env(env)

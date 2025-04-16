@@ -23,7 +23,7 @@ import wandb
 from camar.environment import Camar
 from camar.core.maps import RandomGrid
 from camar.render import SVG_Visualizer
-from camar.torchrl.torchrl_wrapper import MyEnvWrapper
+from camar.integrations.torchrl import MyEnvWrapper
 
 os.chdir(os.getcwd() + "/baselines/")
 torch.manual_seed(911)

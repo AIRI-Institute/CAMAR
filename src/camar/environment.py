@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Tuple
+from typing import Tuple, Optional
 
 import jax
 import jax.numpy as jnp
@@ -15,18 +15,20 @@ class Camar:
     def __init__(
         self,
         map_generator: BaseMap = RandomGrid(),
+        lifelong: bool = False,
         window: float = 0.8,
         placeholder: float = 0.0,
         max_steps: int = 100,
-        lifelong: bool = False,
         frameskip: int = 2,
-        max_obs: int | None = None,
+        max_obs: Optional[int] = None,
         dt: float = 0.01,
         damping: float = 0.25,
         contact_force: float = 500,
         contact_margin: float = 0.001,
         **kwargs,
     ):
+        self.device = str(jax.devices()[0])
+        
         self.map_generator = map_generator
         self.window = window
 
