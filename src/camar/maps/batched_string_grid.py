@@ -6,7 +6,7 @@ import jax.numpy as jnp
 from jax import Array
 from jax.typing import ArrayLike
 
-from camar.maps import BaseMap
+from camar.maps import base_map
 from camar.maps.utils import (
     check_pos,
     idx2pos,
@@ -17,7 +17,7 @@ from camar.maps.utils import (
 )
 
 
-class BatchedStringGrid(BaseMap):
+class batched_string_grid(base_map):
     def __init__(
         self,
         map_str_batch: List[str],
@@ -30,7 +30,7 @@ class BatchedStringGrid(BaseMap):
         add_border: bool = True,
         obstacle_size: float = 0.1,
         agent_size: float = 0.04,
-    ) -> BaseMap:
+    ) -> base_map:
         self.batch_size = len(map_str_batch)
         if agent_idx_batch is not None:
             num_agents = agent_idx_batch[0].shape[0]

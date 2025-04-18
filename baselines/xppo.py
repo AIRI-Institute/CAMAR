@@ -21,10 +21,10 @@ from torchrl.objectives import ClipPPOLoss, ValueEstimators
 from tqdm.auto import tqdm
 
 import wandb
-from camar.environment import Camar
-from camar.maps import RandomGrid
+from camar import camar_v0
+from camar.maps import random_grid
 from camar.render import SVG_Visualizer
-from camar.integrations.torchrl import MyEnvWrapper
+from camar.integrations.torchrl import CamarWrapper
 
 
 os.chdir(os.getcwd() + "/baselines/")
@@ -83,7 +83,7 @@ grain_factor = 6
 
 window = 0.8
 
-map_generator = RandomGrid(
+map_generator = random_grid(
     num_rows = num_rows,
     num_cols = num_cols,
     obstacle_density = obstacle_density,
@@ -91,7 +91,7 @@ map_generator = RandomGrid(
     grain_factor = grain_factor,
 )
 
-env = Camar(
+env = camar_v0(
     map_generator = map_generator,
     window = window,
     lifelong = False,
@@ -106,8 +106,7 @@ env = Camar(
 num_envs = frames_per_batch // env.max_steps
 print("num_envs =", num_envs)
 
-env = MyEnvWrapper(env, device=device, batch_size=[num_envs])
-env.set_seed(0)
+env = CamarWrapper(env=env, device=device, batch_size=[num_envs], seed=0)
 
 env = TransformedEnv(
     env,
@@ -357,7 +356,7 @@ def rendering_callback(env, td):
     env.state_seq.append(get_state_from_envs(env._state, 0))
 
 
-viz_env = Camar(
+viz_env = camar_v0(
     map_generator = map_generator,
     window = window,
     lifelong = False,
@@ -369,8 +368,7 @@ viz_env = Camar(
     max_obs=8,
 )
 
-viz_env = MyEnvWrapper(viz_env, device=device, batch_size=[2])
-viz_env.set_seed(5)
+viz_env = CamarWrapper(viz_env, device=device, batch_size=[2], seed=5)
 
 viz_env = TransformedEnv(
     viz_env,

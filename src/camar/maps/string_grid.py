@@ -6,11 +6,11 @@ import jax.numpy as jnp
 from jax import Array
 from jax.typing import ArrayLike
 
-from camar.maps import BaseMap
+from camar.maps import base_map
 from camar.maps.utils import idx2pos, map_str2array, parse_map_array
 
 
-class StringGrid(BaseMap):
+class string_grid(base_map):
     def __init__(
         self,
         map_str: str,
@@ -23,7 +23,7 @@ class StringGrid(BaseMap):
         add_border: bool = True,
         obstacle_size: float = 0.1,
         agent_size: float = 0.04,
-    ) -> BaseMap:
+    ) -> base_map:
         if agent_idx is not None:
             num_agents = agent_idx.shape[0]
         if goal_idx is not None:

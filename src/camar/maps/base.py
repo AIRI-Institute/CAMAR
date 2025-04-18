@@ -5,7 +5,7 @@ from jax import Array
 from jax.typing import ArrayLike
 
 
-class BaseMap(ABC):
+class base_map(ABC):
     @property
     @abstractmethod
     def landmark_rad(self) -> float:  # TODO: various radiuses

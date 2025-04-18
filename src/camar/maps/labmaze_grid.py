@@ -1,9 +1,9 @@
 import labmaze
 
-from camar.maps.string_grid import StringGrid
+from camar.maps.string_grid import string_grid
 
 
-class LabMaze(StringGrid):
+class labmaze_grid(string_grid):
     def __init__(
         self,
         num_agents: int = 10,
@@ -12,7 +12,7 @@ class LabMaze(StringGrid):
         **kwargs,
     ):
         maze = labmaze.RandomMaze(**kwargs)
-        map_str = str(maze.entity_layer).replace(" ", ".").replace("*", "#")
+        map_str = str(maze.entity_layer)
 
         super().__init__(
             map_str,

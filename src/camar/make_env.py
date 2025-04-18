@@ -2,14 +2,14 @@ import importlib
 from typing import Optional, Union
 
 from camar.environment import Camar
-from camar.maps import RandomGrid
-from camar.maps.base import BaseMap
+from camar.maps import random_grid
+from camar.maps.base import base_map
 
 MAPS_MODULE = "camar.maps"
 
 
 def make_env(
-    map_generator: Optional[Union[str, BaseMap]] = RandomGrid(),
+    map_generator: Optional[Union[str, base_map]] = random_grid(),
     window: float = 0.8,
     placeholder: float = 0.0,
     max_steps: int = 100,
