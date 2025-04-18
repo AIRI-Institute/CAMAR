@@ -44,6 +44,8 @@ class State:
     # observation: ArrayLike # [num_agents, max_obs, 2]
     # reward: ArrayLike # [num_agents]
 
+    on_goal: ArrayLike # [num_agents, ] - for metrics
+
     # done: ArrayLike  # bool [num_agents, ]
     step: int # current step
 

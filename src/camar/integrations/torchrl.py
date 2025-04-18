@@ -12,7 +12,6 @@ from torchrl.envs.libs.jax_utils import (
 )
 from torchrl.envs.utils import MarlGroupMapType, _classproperty, check_marl_grouping
 from camar import camar_v0
-from typing import Optional
 
 
 class CamarWrapper(_EnvWrapper):
@@ -157,7 +156,7 @@ class CamarWrapper(_EnvWrapper):
         self._key, *keys = jax.random.split(self._key, 1 + self.numel())
 
         # call env reset with jit and vmap
-        self._state, obs, done = self._vmap_jit_env_reset(jax.numpy.stack(keys))
+        obs, self._state = self._vmap_jit_env_reset(jax.numpy.stack(keys))
 
         tensordict_agents = TensorDict(
             source={
@@ -167,6 +166,7 @@ class CamarWrapper(_EnvWrapper):
             device=self.device,
         )
 
+        done = self._state.on_goal.all(axis=-1)
         done = _ndarray_to_tensor(done)
 
         tensordict_out = TensorDict(
@@ -195,7 +195,7 @@ class CamarWrapper(_EnvWrapper):
         # call env step with jit and vmap
         self._key, *keys_s = jax.random.split(self._key, 1 + self.numel())
 
-        self._state, obs, reward, done = self._vmap_jit_env_step(
+        obs, self._state, reward, done, info = self._vmap_jit_env_step(
             jax.numpy.stack(keys_s), self._state, action
         )
 

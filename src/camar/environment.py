@@ -28,7 +28,7 @@ class Camar:
         **kwargs,
     ):
         self.device = str(jax.devices()[0])
-        
+
         self.map_generator = map_generator
         self.window = window
 
@@ -124,11 +124,13 @@ class Camar:
             goal_pos = goal_pos,
             step = state.step + 1,
             goal_keys = goal_keys,
+            on_goal = on_goal,
         )
 
         obs = self.get_obs(state.agent_pos, state.landmark_pos, state.goal_pos)
 
-        return state, obs, reward, done
+        info = {"success_rate": on_goal.sum() / self.num_agents}
+        return obs, state, reward, done, info
 
     @partial(jax.jit, static_argnums=[0])
     def reset(self, key: ArrayLike) -> Tuple[State, Array, Array]:
@@ -139,20 +141,20 @@ class Camar:
         obs = self.get_obs(agent_pos, landmark_pos, goal_pos)
         # reward = self.get_reward(agent_pos, all_landmark_pos, goal_pos)
 
+        goal_dist = jnp.linalg.norm(agent_pos - goal_pos, axis=-1)
+        on_goal = goal_dist < self.goal_rad
+
         state = State(
             agent_pos = agent_pos,
             agent_vel = jnp.zeros((self.num_agents, 2)),
             goal_pos = goal_pos,
             landmark_pos = landmark_pos,
+            on_goal = on_goal,
             step = 0,
             goal_keys = goal_keys,
         )
 
-        goal_dist = jnp.linalg.norm(state.agent_pos - state.goal_pos, axis=-1)
-        on_goal = goal_dist < self.goal_rad
-        done = on_goal.all(axis=-1)
-
-        return state, obs, done
+        return obs, state
 
     @partial(jax.vmap, in_axes=[None, 0, None])
     def get_dist(self, a_pos: ArrayLike, p_pos: ArrayLike) -> Array:
