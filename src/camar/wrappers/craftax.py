@@ -1,23 +1,14 @@
-# From Craftax Baselines https://github.com/MichaelTMatthews/Craftax_Baselines.git
-# TODO: delete env_params or add this functionality to the environment class
+# From Craftax Baselines https://github.com/MichaelTMatthews/Craftax_Baselines.git with few modifications: deleted env_params logic
+
+from functools import partial
+from typing import Any, Union
 
 import jax
 import jax.numpy as jnp
 from flax import struct
-from functools import partial
-from typing import Union, Any
 from jax.typing import ArrayLike
 
-
-class GymnaxWrapper(object):
-    """Base class for Gymnax wrappers."""
-
-    def __init__(self, env):
-        self._env = env
-
-    # provide proxy access to regular attributes of wrapped object
-    def __getattr__(self, name):
-        return getattr(self._env, name)
+from camar.wrappers import GymnaxWrapper
 
 
 class BatchEnvWrapper(GymnaxWrapper):
@@ -28,21 +19,21 @@ class BatchEnvWrapper(GymnaxWrapper):
 
         self.num_envs = num_envs
 
-        self.reset_fn = jax.vmap(self._env.reset, in_axes=(0, None))
-        self.step_fn = jax.vmap(self._env.step, in_axes=(0, 0, 0, None))
+        self.reset_fn = jax.vmap(self._env.reset, in_axes=(0, ))
+        self.step_fn = jax.vmap(self._env.step, in_axes=(0, 0, 0, ))
 
-    @partial(jax.jit, static_argnums=(0, 2))
-    def reset(self, rng, params=None):
+    @partial(jax.jit, static_argnums=(0, ))
+    def reset(self, rng):
         rng, _rng = jax.random.split(rng)
         rngs = jax.random.split(_rng, self.num_envs)
-        obs, env_state = self.reset_fn(rngs, params)
+        obs, env_state = self.reset_fn(rngs, )
         return obs, env_state
 
-    @partial(jax.jit, static_argnums=(0, 4))
-    def step(self, rng, state, action, params=None):
+    @partial(jax.jit, static_argnums=(0, ))
+    def step(self, rng, state, action):
         rng, _rng = jax.random.split(rng)
         rngs = jax.random.split(_rng, self.num_envs)
-        obs, state, reward, done, info = self.step_fn(rngs, state, action, params)
+        obs, state, reward, done, info = self.step_fn(rngs, state, action)
 
         return obs, state, reward, done, info
 
@@ -53,20 +44,18 @@ class AutoResetEnvWrapper(GymnaxWrapper):
     def __init__(self, env):
         super().__init__(env)
 
-    @partial(jax.jit, static_argnums=(0, 2))
-    def reset(self, key, params=None):
-        return self._env.reset(key, params)
+    @partial(jax.jit, static_argnums=(0, ))
+    def reset(self, key):
+        return self._env.reset(key)
 
-    @partial(jax.jit, static_argnums=(0, 4))
-    def step(self, rng, state, action, params=None):
-
-        rng, _rng = jax.random.split(rng)
-        obs_st, state_st, reward, done, info = self._env.step(
-            _rng, state, action, params
-        )
+    @partial(jax.jit, static_argnums=(0, ))
+    def step(self, rng, state, action):
 
         rng, _rng = jax.random.split(rng)
-        obs_re, state_re = self._env.reset(_rng, params)
+        obs_st, state_st, reward, done, info = self._env.step(_rng, state, action)
+
+        rng, _rng = jax.random.split(rng)
+        obs_re, state_re = self._env.reset(_rng)
 
         # Auto-reset environment based on termination
         def auto_reset(done, state_re, state_st, obs_re, obs_st):
@@ -100,26 +89,26 @@ class OptimisticResetVecEnvWrapper(GymnaxWrapper):
         ), "Reset ratio must perfectly divide num envs."
         self.num_resets = self.num_envs // reset_ratio
 
-        self.reset_fn = jax.vmap(self._env.reset, in_axes=(0, None))
-        self.step_fn = jax.vmap(self._env.step, in_axes=(0, 0, 0, None))
+        self.reset_fn = jax.vmap(self._env.reset, in_axes=(0, ))
+        self.step_fn = jax.vmap(self._env.step, in_axes=(0, 0, 0, ))
 
-    @partial(jax.jit, static_argnums=(0, 2))
-    def reset(self, rng, params=None):
+    @partial(jax.jit, static_argnums=(0, ))
+    def reset(self, rng):
         rng, _rng = jax.random.split(rng)
         rngs = jax.random.split(_rng, self.num_envs)
-        obs, env_state = self.reset_fn(rngs, params)
+        obs, env_state = self.reset_fn(rngs, )
         return obs, env_state
 
-    @partial(jax.jit, static_argnums=(0, 4))
-    def step(self, rng, state, action, params=None):
+    @partial(jax.jit, static_argnums=(0, ))
+    def step(self, rng, state, action):
 
         rng, _rng = jax.random.split(rng)
         rngs = jax.random.split(_rng, self.num_envs)
-        obs_st, state_st, reward, done, info = self.step_fn(rngs, state, action, params)
+        obs_st, state_st, reward, done, info = self.step_fn(rngs, state, action)
 
         rng, _rng = jax.random.split(rng)
         rngs = jax.random.split(_rng, self.num_resets)
-        obs_re, state_re = self.reset_fn(rngs, params)
+        obs_re, state_re = self.reset_fn(rngs)
 
         rng, _rng = jax.random.split(rng)
         reset_indexes = jnp.arange(self.num_resets).repeat(self.reset_ratio)
@@ -166,23 +155,20 @@ class LogWrapper(GymnaxWrapper):
     def __init__(self, env):
         super().__init__(env)
 
-    @partial(jax.jit, static_argnums=(0, 2))
-    def reset(self, key: ArrayLike, params=None):
-        obs, env_state = self._env.reset(key, params)
+    @partial(jax.jit, static_argnums=(0, ))
+    def reset(self, key: ArrayLike):
+        obs, env_state = self._env.reset(key)
         state = LogEnvState(env_state, 0.0, 0, 0.0, 0, 0)
         return obs, state
 
-    @partial(jax.jit, static_argnums=(0, 4))
+    @partial(jax.jit, static_argnums=(0, ))
     def step(
         self,
         key: ArrayLike,
         state,
         action: Union[int, float],
-        params=None,
     ):
-        obs, env_state, reward, done, info = self._env.step(
-            key, state.env_state, action, params
-        )
+        obs, env_state, reward, done, info = self._env.step(key, state.env_state, action)
         new_episode_return = state.episode_returns + reward
         new_episode_length = state.episode_lengths + 1
         state = LogEnvState(

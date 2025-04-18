@@ -129,8 +129,7 @@ class Camar:
 
         obs = self.get_obs(state.agent_pos, state.landmark_pos, state.goal_pos)
 
-        info = {"success_rate": on_goal.sum() / self.num_agents}
-        return obs, state, reward, done, info
+        return obs, state, reward, done, {}
 
     @partial(jax.jit, static_argnums=[0])
     def reset(self, key: ArrayLike) -> Tuple[State, Array, Array]:

@@ -6,27 +6,34 @@ from jax.typing import ArrayLike
 
 
 class BaseMap(ABC):
-
     @property
     @abstractmethod
-    def landmark_rad(self) -> float: # TODO: various radiuses
+    def landmark_rad(self) -> float:  # TODO: various radiuses
         pass
 
     @property
     @abstractmethod
-    def agent_rad(self) -> float: # TODO: various radiuses
+    def agent_rad(self) -> float:  # TODO: various radiuses
         pass
 
     @property
     @abstractmethod
-    def goal_rad(self) -> float: # TODO: various radiuses
+    def goal_rad(self) -> float:  # TODO: various radiuses
         pass
 
-    def reset(self, key: ArrayLike) -> Tuple[Array, Array, Array, Array]: # Tuple[PRNGKey_goal, landmark_pos, agent_pos, goal_pos]
-        raise NotImplementedError(f"{self.__class__.__name__}.reset is not implemented. Must be implemented if lifelong=False.")
+    def reset(
+        self, key: ArrayLike
+    ) -> Tuple[Array, Array, Array, Array]:  # Tuple[PRNGKey_goal, landmark_pos, agent_pos, goal_pos]
+        raise NotImplementedError(
+            f"{self.__class__.__name__}.reset is not implemented. Must be implemented if lifelong=False."
+        )
 
-    def reset_lifelong(self, key: ArrayLike) -> Tuple[Array, Array, Array, Array]:  # Tuple[PRNGKey_goal, landmark_pos, agent_pos, goal_pos]
+    def reset_lifelong(
+        self, key: ArrayLike
+    ) -> Tuple[Array, Array, Array, Array]:  # Tuple[PRNGKey_goal, landmark_pos, agent_pos, goal_pos]
         raise NotImplementedError(f"{self.__class__.__name__}.reset_lifelong is not implemented. Must be implemented if lifelong=True.")
 
-    def update_goals(self, keys: ArrayLike, goal_pos: ArrayLike, to_update: ArrayLike) -> Tuple[Array, Array]: # Tuple[PRNGKey_goal, goal_pos]
+    def update_goals(
+        self, keys: ArrayLike, goal_pos: ArrayLike, to_update: ArrayLike
+    ) -> Tuple[Array, Array]:  # Tuple[PRNGKey_goal, goal_pos]
         raise NotImplementedError(f"{self.__class__.__name__}.update_goals is not implemented. Must be implemented if lifelong=True.")

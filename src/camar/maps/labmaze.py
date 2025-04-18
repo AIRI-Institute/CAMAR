@@ -14,4 +14,11 @@ class LabMaze(StringGrid):
         maze = labmaze.RandomMaze(**kwargs)
         map_str = str(maze.entity_layer).replace(" ", ".").replace("*", "#")
 
-        super().__init__(map_str, num_agents, obstacle_size, agent_size, remove_border = False, add_border = False)
+        super().__init__(
+            map_str,
+            num_agents,
+            obstacle_size,
+            agent_size,
+            remove_border=False,
+            add_border=False,
+        )

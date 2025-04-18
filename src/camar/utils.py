@@ -12,6 +12,7 @@ class Box:
     """
     Minimal jittable class for array-shaped gymnax spaces.
     """
+
     def __init__(
         self,
         low: float,
@@ -33,20 +34,19 @@ class Box:
 
 @struct.dataclass
 class State:
-
     agent_pos: ArrayLike  # [num_entities, [x, y]]
     agent_vel: ArrayLike  # [n, [x, y]]
 
     goal_pos: ArrayLike  # [num_agents, [x, y]]
-    # obstacle_pos: ArrayLike # [num_obstacles, [x, y]]
-    landmark_pos: ArrayLike # [num_landmarks, [x, y]]
+    # obstacle_pos: ArrayLike  # [num_obstacles, [x, y]]
+    landmark_pos: ArrayLike  # [num_landmarks, [x, y]]
 
-    # observation: ArrayLike # [num_agents, max_obs, 2]
-    # reward: ArrayLike # [num_agents]
+    # observation: ArrayLike  # [num_agents, max_obs, 2]
+    # reward: ArrayLike  # [num_agents]
 
-    on_goal: ArrayLike # [num_agents, ] - for metrics
+    on_goal: ArrayLike  # [num_agents, ] - for metrics
 
     # done: ArrayLike  # bool [num_agents, ]
-    step: int # current step
+    step: int  # current step
 
-    goal_keys: ArrayLike # [num_agents, ] or [] - jax keys for the controllable goal generation (keys are updated only for agents on_goal in lifelong)
+    goal_keys: ArrayLike  # [num_agents, ] or [] - jax keys for the controllable goal generation (keys are updated only for agents on_goal in lifelong)
