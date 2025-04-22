@@ -16,6 +16,8 @@ from .utils import (
     random_truncate,
 )
 
+cuda_device = jax.devices("cuda")[0]
+
 
 class batched_string_grid(base_map):
     def __init__(
@@ -30,6 +32,8 @@ class batched_string_grid(base_map):
         add_border: bool = True,
         obstacle_size: float = 0.1,
         agent_size: float = 0.06,
+        max_free_pos: int = 100,
+        map_array_preprocess: callable = lambda map_array: map_array,
     ) -> base_map:
         self.batch_size = len(map_str_batch)
         if agent_idx_batch is not None:
@@ -45,7 +49,7 @@ class batched_string_grid(base_map):
         self.obstacle_size = obstacle_size
         self.agent_size = agent_size
 
-        map_array_batch = list(map(lambda x: map_str2array(x, remove_border, add_border), map_str_batch))
+        map_array_batch = list(map(lambda x: map_str2array(x, remove_border, add_border, map_array_preprocess), map_str_batch))
 
         if agent_idx_batch is not None:
             if remove_border:
@@ -77,11 +81,17 @@ class batched_string_grid(base_map):
         self.num_landmarks = max(map(lambda x: x.shape[0], self.landmark_pos_batch))
         self.free_pos_num = min(map(lambda x: x.shape[0], free_pos_batch))
 
+        self.free_pos_num = min(self.free_pos_num, max_free_pos) # for memory control
+
         assert self.free_pos_num >= self.num_agents, "there is a map without enough number of free cells for agents"
 
         self.landmark_pos_batch = jnp.stack(list(map(lambda x: pad_placeholder(x, self.num_landmarks), self.landmark_pos_batch)), axis=0)
 
+        self.landmark_pos_batch = self.landmark_pos_batch.to_device(cuda_device)
+
         free_pos_batch = jnp.stack(list(map(lambda x: random_truncate(x, self.free_pos_num), free_pos_batch)), axis=0)
+
+        free_pos_batch = free_pos_batch.to_device(cuda_device)
 
         if agent_idx_batch is not None:
             agent_pos_batch = jax.vmap(idx2pos, in_axes=[0, 0, None, None, None])(agent_idx_batch[:, :, 0], agent_idx_batch[:, :, 1], obstacle_size, self.height, self.width)
