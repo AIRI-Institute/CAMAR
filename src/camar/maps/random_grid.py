@@ -6,7 +6,7 @@ import jax.numpy as jnp
 from jax import Array
 from jax.typing import ArrayLike
 
-from camar.maps import base_map
+from .base_map import base_map
 
 
 class random_grid(base_map):

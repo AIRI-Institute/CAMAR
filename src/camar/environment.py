@@ -7,7 +7,7 @@ from jax import Array
 from jax.typing import ArrayLike
 
 from camar.maps import random_grid
-from camar.maps.base import base_map
+from camar.maps.base_map import base_map
 from camar.utils import Box, State
 
 
@@ -21,6 +21,7 @@ class Camar:
         max_steps: int = 100,
         frameskip: int = 2,
         max_obs: Optional[int] = None,
+        pos_shaping_factor: float = 1.0,
         dt: float = 0.01,
         damping: float = 0.25,
         contact_force: float = 500,
@@ -31,6 +32,8 @@ class Camar:
 
         self.map_generator = map_generator
         self.window = window
+
+        self.pos_shaping_factor = pos_shaping_factor
 
         self.frameskip = frameskip
 
@@ -92,6 +95,8 @@ class Camar:
 
         key, key_w = jax.random.split(key)
 
+        old_goal_dist = jnp.linalg.norm(state.agent_pos - state.goal_pos, axis=-1) # (num_agents, )
+
         def frameskip(scan_state, _):
             key, state, u = scan_state
 
@@ -116,7 +121,7 @@ class Camar:
         # terminated = on_goal.all(axis=-1)
         # truncated = state.step >= self.max_steps
 
-        reward = self.get_reward(state.agent_pos, state.landmark_pos, goal_dist)
+        reward = self.get_reward(state.agent_pos, state.landmark_pos, goal_dist, old_goal_dist)
 
         goal_keys, goal_pos = self.update_goals(state.goal_keys, state.goal_pos, on_goal)
 
@@ -167,7 +172,7 @@ class Camar:
         # (num_agents, 1, 2) - (1, num_objects, 2) -> (num_agents, num_objects, 2) -> (num_agents, num_objects)
         distances = jnp.linalg.norm(agent_pos[:, None, :] - objects[None, :, :], axis=-1)
 
-        nearest_dists, nearest_ids = jax.lax.top_k(-distances, self.max_obs+1) # (num_agents, self.max_obs+1)
+        nearest_dists, nearest_ids = jax.lax.top_k(-distances, self.max_obs + 1) # (num_agents, self.max_obs + 1)
         # remove zeros (nearest is the agent itself) -> (num_agents, self.max_obs)
         nearest_ids = nearest_ids[:, 1:]
         nearest_dists = -nearest_dists[:, 1:]
@@ -190,7 +195,7 @@ class Camar:
 
         return obs.reshape(self.num_agents, self.observation_size)
 
-    def get_reward(self, agent_pos: ArrayLike, landmark_pos: ArrayLike, goal_dist: ArrayLike) -> Array:
+    def get_reward(self, agent_pos: ArrayLike, landmark_pos: ArrayLike, goal_dist: ArrayLike, old_goal_dist: ArrayLike) -> Array:
         """Return rewards for all agents"""
 
         objects = jnp.vstack((agent_pos, landmark_pos))
@@ -211,7 +216,8 @@ class Camar:
 
         # r = 10.0 * on_goal.astype(jnp.float32) - 0.001 * goal_dist - 1 * collision.astype(jnp.float32)
         # r = 1.0 * on_goal.astype(jnp.float32) - 0.5 * collision.astype(jnp.float32) - 0.01 * jnp.log1p(goal_dist)
-        r = 1.0 * on_goal.astype(jnp.float32) - 2.0 * collision.astype(jnp.float32) - 0.01 * jnp.log(goal_dist + 1e-8)
+        # r = 1.0 * on_goal.astype(jnp.float32) - 2.0 * collision.astype(jnp.float32) - 0.01 * jnp.log(goal_dist + 1e-8)
+        r = 0.5 * on_goal.astype(jnp.float32) - 1.0 * collision.astype(jnp.float32) + self.pos_shaping_factor * (old_goal_dist - goal_dist)
         # r = 1.0 * on_goal.astype(jnp.float32) - 0.5 * collision.astype(jnp.float32) + jnp.reciprocal(1.0 + goal_dist / 4)
         # r = 1.0 * on_goal.astype(jnp.float32) - 0.5 * collision.astype(jnp.float32)
         return r.reshape(-1, 1)

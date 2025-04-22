@@ -6,8 +6,8 @@ import jax.numpy as jnp
 from jax import Array
 from jax.typing import ArrayLike
 
-from camar.maps import base_map
-from camar.maps.utils import idx2pos, map_str2array, parse_map_array
+from .base_map import base_map
+from .utils import idx2pos, map_str2array, parse_map_array
 
 
 class string_grid(base_map):

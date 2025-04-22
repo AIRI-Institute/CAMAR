@@ -6,8 +6,8 @@ import jax.numpy as jnp
 from jax import Array
 from jax.typing import ArrayLike
 
-from camar.maps import base_map
-from camar.maps.utils import (
+from .base_map import base_map
+from .utils import (
     check_pos,
     idx2pos,
     map_str2array,
@@ -29,7 +29,7 @@ class batched_string_grid(base_map):
         remove_border: bool = False,
         add_border: bool = True,
         obstacle_size: float = 0.1,
-        agent_size: float = 0.04,
+        agent_size: float = 0.06,
     ) -> base_map:
         self.batch_size = len(map_str_batch)
         if agent_idx_batch is not None:

@@ -20,12 +20,12 @@ cuda12 = [
     "jax[cuda12]>=0.5.3",
 ]
 torchrl = [
-    "torchrl>=0.7.2",
+    "torchrl>=0.7.0",
 ]
 baselines = [
     "matplotlib>=3.10.1",
-    "pandas>=2.2.3",
-    "torchrl>=0.7.2",
+    "pandas>=1.4.4",
+    "torchrl>=0.7.0",
     "tqdm>=4.67.1",
     "wandb>=0.19.9",
 ]
@@ -34,6 +34,15 @@ matplotlib = [
 ]
 labmaze = [
     "labmaze>=1.0.6",
+]
+benchmarl = [
+    "av<14",
+    "torchrl>=0.7.0",
+    "torchvision>=0.21.0",
+    "tqdm>=4.67.1",
+    "hydra-core>=1.3.2",
+    "wandb>=0.19.9",
+    "id-marl-eval>=0.0.4",
 ]
 
 [build-system]

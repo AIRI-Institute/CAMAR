@@ -1,9 +1,9 @@
 import importlib
 from typing import Optional, Union
 
-from camar.environment import Camar
-from camar.maps import random_grid
-from camar.maps.base import base_map
+from .environment import Camar
+from .maps import random_grid
+from .maps import base_map
 
 MAPS_MODULE = "camar.maps"
 

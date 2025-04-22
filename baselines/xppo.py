@@ -57,8 +57,8 @@ critic_params = params[model_name]["critic"]
 
 device = torch.device("cuda:0")
 
-frames_per_batch = 108_000
-n_iters = 60
+frames_per_batch = 200_000
+n_iters = 40
 total_frames = frames_per_batch * n_iters
 
 num_epochs = 2
@@ -73,7 +73,7 @@ entropy_eps = 1e-4
 critic_coef = 1
 loss_critic_type = "smooth_l2"
 
-wandb_name = "MAPPO1_collision_2.0_goal_dist_log_0.01"
+wandb_name = "MAPPO_0.5_on_goal_1.0_collision_1.0_rew_diff"
 
 num_rows = 10
 num_cols = 10
@@ -95,7 +95,7 @@ env = camar_v0(
     map_generator = map_generator,
     window = window,
     lifelong = False,
-    max_steps = 900,
+    max_steps = 1000,
     contact_force=500,
     contact_margin=1e-3,
     dt=0.01,
@@ -368,7 +368,7 @@ viz_env = camar_v0(
     max_obs=8,
 )
 
-viz_env = CamarWrapper(viz_env, device=device, batch_size=[2], seed=5)
+viz_env = CamarWrapper(env=viz_env, device=device, batch_size=[2], seed=5)
 
 viz_env = TransformedEnv(
     viz_env,
