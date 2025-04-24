@@ -8,13 +8,14 @@ from jax.typing import ArrayLike
 
 from .base_map import base_map
 from .const import GPU_DEVICE
-from .utils import idx2pos, map_str2array, parse_map_array
+from .utils import idx2pos, map_str2array, parse_map_array, random_truncate
 
 
 class string_grid(base_map):
     def __init__(
         self,
         map_str: str,
+        free_pos_str: Optional[str] = None,
         agent_idx: Optional[ArrayLike] = None,
         goal_idx: Optional[ArrayLike] = None,
         num_agents: Optional[int] = 10,
@@ -24,6 +25,9 @@ class string_grid(base_map):
         add_border: bool = True,
         obstacle_size: float = 0.1,
         agent_size: float = 0.04,
+        max_free_pos: Optional[int] = None,
+        map_array_preprocess: callable = lambda map_array: map_array,
+        free_pos_array_preprocess: callable = lambda free_pos_array: free_pos_array,
     ) -> base_map:
         if agent_idx is not None:
             num_agents = agent_idx.shape[0]
@@ -34,7 +38,16 @@ class string_grid(base_map):
         self.obstacle_size = obstacle_size
         self.agent_size = agent_size
 
-        map_array = map_str2array(map_str, remove_border, add_border)
+        map_array = map_str2array(
+            map_str, remove_border, add_border, map_array_preprocess
+        )
+
+        if free_pos_str is not None:
+            free_pos_array = map_str2array(
+                free_pos_str, remove_border, add_border, free_pos_array_preprocess
+            )
+        else:
+            free_pos_array = None
 
         if agent_idx is not None:
             if remove_border:
@@ -56,27 +69,46 @@ class string_grid(base_map):
             goal_cells = map_array[goal_idx[:, 0], goal_idx[:, 1]]
             assert ~goal_cells.any(), f"goal_idx must be free. got {goal_cells}"
 
-        self.landmark_pos, free_pos, self.height, self.width = parse_map_array(map_array, obstacle_size)
+        self.landmark_pos, free_pos, self.height, self.width = parse_map_array(
+            map_array, obstacle_size, free_pos_array
+        )
         self.landmark_pos = self.landmark_pos.to_device(GPU_DEVICE)
+
+        if max_free_pos is not None:
+            free_pos = random_truncate(free_pos, max_free_pos)
         free_pos = free_pos.to_device(GPU_DEVICE)
 
         if agent_idx is not None:
-            agent_pos = idx2pos(agent_idx[:, 0], agent_idx[:, 1], obstacle_size, self.height, self.width)
+            agent_pos = idx2pos(
+                agent_idx[:, 0], agent_idx[:, 1], obstacle_size, self.height, self.width
+            )
             self.generate_agents = lambda key: agent_pos
         elif random_agents:
-            self.generate_agents = lambda key: jax.random.choice(key, free_pos, shape=(self.num_agents, ), replace=False)
+            self.generate_agents = lambda key: jax.random.choice(
+                key, free_pos, shape=(self.num_agents,), replace=False
+            )
         else:
-            agent_pos = jax.random.choice(jax.random.key(0), free_pos, shape=(self.num_agents, ), replace=False)
+            agent_pos = jax.random.choice(
+                jax.random.key(0), free_pos, shape=(self.num_agents,), replace=False
+            )
             self.generate_agents = lambda key: agent_pos
 
         if goal_idx is not None:
-            goal_pos = idx2pos(goal_idx[:, 0], goal_idx[:, 1], obstacle_size, self.height, self.width)
+            goal_pos = idx2pos(
+                goal_idx[:, 0], goal_idx[:, 1], obstacle_size, self.height, self.width
+            )
             self.generate_goals = lambda key: goal_pos
         elif random_goals:
-            self.generate_goals = lambda key: jax.random.choice(key, free_pos, shape=(self.num_agents, ), replace=False)
-            self.generate_goals_lifelong = jax.vmap(lambda key: jax.random.choice(key, free_pos), in_axes=[0]) # 1 key = 1 goal
+            self.generate_goals = lambda key: jax.random.choice(
+                key, free_pos, shape=(self.num_agents,), replace=False
+            )
+            self.generate_goals_lifelong = jax.vmap(
+                lambda key: jax.random.choice(key, free_pos), in_axes=[0]
+            )  # 1 key = 1 goal
         else:
-            goal_pos = jax.random.choice(jax.random.key(1), goal_pos, shape=(self.num_agents, ), replace=False)
+            goal_pos = jax.random.choice(
+                jax.random.key(1), goal_pos, shape=(self.num_agents,), replace=False
+            )
             self.generate_goals = lambda key: goal_pos
 
         self.num_landmarks = self.landmark_pos.shape[0]
@@ -95,7 +127,6 @@ class string_grid(base_map):
 
     @partial(jax.jit, static_argnums=[0])
     def reset(self, key: ArrayLike) -> Tuple[Array, Array, Array, Array]:
-
         key_a, key_g = jax.random.split(key, 2)
 
         # generate agents
@@ -104,7 +135,12 @@ class string_grid(base_map):
         # generate goals
         goal_pos = self.generate_goals(key_g)
 
-        return key_g, self.landmark_pos, agent_pos, goal_pos # return key_g because of lifelong
+        return (
+            key_g,
+            self.landmark_pos,
+            agent_pos,
+            goal_pos,
+        )  # return key_g because of lifelong
 
     @partial(jax.jit, static_argnums=[0])
     def reset_lifelong(self, key) -> Tuple[Array, Array, Array, Array]:
@@ -121,7 +157,9 @@ class string_grid(base_map):
 
         return key_g, self.landmark_pos, agent_pos, goal_pos
 
-    def update_goals(self, keys: ArrayLike, goal_pos: ArrayLike, to_update: ArrayLike) -> Tuple[Array, Array]:
+    def update_goals(
+        self, keys: ArrayLike, goal_pos: ArrayLike, to_update: ArrayLike
+    ) -> Tuple[Array, Array]:
         new_keys = jax.vmap(jax.random.split, in_axes=[0, None])(keys, 1)[:, 0]
         new_keys = jnp.where(to_update, new_keys, keys)
 
