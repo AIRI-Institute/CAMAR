@@ -7,6 +7,7 @@ from jax import Array
 from jax.typing import ArrayLike
 
 from .base_map import base_map
+from .const import GPU_DEVICE
 from .utils import idx2pos, map_str2array, parse_map_array
 
 
@@ -56,6 +57,8 @@ class string_grid(base_map):
             assert ~goal_cells.any(), f"goal_idx must be free. got {goal_cells}"
 
         self.landmark_pos, free_pos, self.height, self.width = parse_map_array(map_array, obstacle_size)
+        self.landmark_pos = self.landmark_pos.to_device(GPU_DEVICE)
+        free_pos = free_pos.to_device(GPU_DEVICE)
 
         if agent_idx is not None:
             agent_pos = idx2pos(agent_idx[:, 0], agent_idx[:, 1], obstacle_size, self.height, self.width)

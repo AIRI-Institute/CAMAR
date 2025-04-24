@@ -15,14 +15,14 @@ from .utils import (
     parse_map_array,
     random_truncate,
 )
-
-cuda_device = jax.devices("cuda")[0]
+from .const import GPU_DEVICE
 
 
 class batched_string_grid(base_map):
     def __init__(
         self,
         map_str_batch: List[str],
+        free_pos_str_batch: Optional[List[str]] = None,
         agent_idx_batch: Optional[List[ArrayLike]] = None,
         goal_idx_batch: Optional[List[ArrayLike]] = None,
         num_agents: Optional[int] = 10,
@@ -34,22 +34,33 @@ class batched_string_grid(base_map):
         agent_size: float = 0.06,
         max_free_pos: int = 100,
         map_array_preprocess: callable = lambda map_array: map_array,
+        free_pos_array_preprocess: callable = lambda free_pos_array: free_pos_array,
     ) -> base_map:
         self.batch_size = len(map_str_batch)
         if agent_idx_batch is not None:
             num_agents = agent_idx_batch[0].shape[0]
-            assert all(map(lambda x: x.shape[0] == num_agents, agent_idx_batch)), "agent_idx.shape must be the same in a batch."
+            assert all(map(lambda agent_idx: agent_idx.shape[0] == num_agents, agent_idx_batch)), "agent_idx.shape must be the same in a batch."
             assert len(agent_idx_batch) == self.batch_size
         if goal_idx_batch is not None:
             num_agents = goal_idx_batch[0].shape[0]
-            assert all(map(lambda x: x.shape[0] == num_agents, goal_idx_batch)), "goal_idx.shape must be the same in a batch."
+            assert all(map(lambda goal_idx: goal_idx.shape[0] == num_agents, goal_idx_batch)), "goal_idx.shape must be the same in a batch."
             assert len(goal_idx_batch) == self.batch_size
 
         self.num_agents = num_agents
         self.obstacle_size = obstacle_size
         self.agent_size = agent_size
 
-        map_array_batch = list(map(lambda x: map_str2array(x, remove_border, add_border, map_array_preprocess), map_str_batch))
+        map_array_batch = list(map(lambda map_str: map_str2array(map_str, remove_border, add_border, map_array_preprocess), map_str_batch))
+        map_array_shape = map_array_batch[0].shape
+        map_array_checks = map(lambda map_array: map_array.shape == map_array_shape, map_array_batch)
+        assert all(map_array_checks), "all maps must have the same shape. Resize or provide resize map_array_preprocess"
+
+        if free_pos_str_batch is not None:
+            free_pos_array_batch = list(map(lambda free_pos_str: map_str2array(free_pos_str, remove_border, add_border, free_pos_array_preprocess), free_pos_str_batch))
+            free_pos_array_checks = map(lambda map_array, free_pos_array: map_array.shape == free_pos_array.shape, map_array_batch, free_pos_array_batch)
+            assert all(free_pos_array_checks), "all free_pos must have the same shape as maps after processing. Resize or provide resize free_pos_array_preprocess"
+        else:
+            free_pos_array_batch = [None for _ in map_str_batch]
 
         if agent_idx_batch is not None:
             if remove_border:
@@ -58,7 +69,7 @@ class batched_string_grid(base_map):
             if add_border:
                 agent_idx_batch = [idx + 1 for idx in agent_idx_batch]
 
-            agent_checks = map(lambda x, y: check_pos(x, y), map_array_batch, agent_idx_batch)
+            agent_checks = map(lambda map_array, agent_idx: check_pos(map_array, agent_idx), map_array_batch, agent_idx_batch)
             assert any(agent_checks), "agent_idx must be free for each map instance."
 
         if goal_idx_batch is not None:
@@ -68,10 +79,10 @@ class batched_string_grid(base_map):
             if add_border:
                 goal_idx_batch = [idx + 1 for idx in goal_idx_batch]
 
-            goal_checks = map(lambda x, y: check_pos(x, y), map_array_batch, goal_idx_batch)
+            goal_checks = map(lambda map_array, goal_idx: check_pos(map_array, goal_idx), map_array_batch, goal_idx_batch)
             assert any(goal_checks), "goal_idx must be free for each map instance."
 
-        self.landmark_pos_batch, free_pos_batch, height_batch, width_batch = list(zip(*map(lambda x: parse_map_array(x, obstacle_size), map_array_batch)))
+        self.landmark_pos_batch, free_pos_batch, height_batch, width_batch = zip(*map(lambda map_array, free_pos_array: parse_map_array(map_array, obstacle_size, free_pos_array), map_array_batch, free_pos_array_batch))
         self.height = height_batch[0]
         assert all(map(lambda x: x == self.height, height_batch)), "map height must be the same in a batch."
 
@@ -87,11 +98,11 @@ class batched_string_grid(base_map):
 
         self.landmark_pos_batch = jnp.stack(list(map(lambda x: pad_placeholder(x, self.num_landmarks), self.landmark_pos_batch)), axis=0)
 
-        self.landmark_pos_batch = self.landmark_pos_batch.to_device(cuda_device)
+        self.landmark_pos_batch = self.landmark_pos_batch.to_device(GPU_DEVICE)
 
         free_pos_batch = jnp.stack(list(map(lambda x: random_truncate(x, self.free_pos_num), free_pos_batch)), axis=0)
 
-        free_pos_batch = free_pos_batch.to_device(cuda_device)
+        free_pos_batch = free_pos_batch.to_device(GPU_DEVICE)
 
         if agent_idx_batch is not None:
             agent_pos_batch = jax.vmap(idx2pos, in_axes=[0, 0, None, None, None])(agent_idx_batch[:, :, 0], agent_idx_batch[:, :, 1], obstacle_size, self.height, self.width)

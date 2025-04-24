@@ -19,7 +19,7 @@ class Camar:
         window: float = 0.8,
         placeholder: float = 0.0,
         max_steps: int = 100,
-        frameskip: int = 2,
+        frameskip: int = 1,
         max_obs: Optional[int] = None,
         pos_shaping_factor: float = 1.0,
         dt: float = 0.01,

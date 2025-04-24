@@ -18,7 +18,7 @@ class random_grid(base_map):
         num_cols: int = 20,
         obstacle_density: float = 0.2,
         num_agents: int = 32,
-        grain_factor: int = 6,
+        grain_factor: int = 3,
         obstacle_size: float = 0.4,
     ) -> base_map:
         self.num_rows = num_rows

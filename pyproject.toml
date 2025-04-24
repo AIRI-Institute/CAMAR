@@ -45,7 +45,7 @@ benchmarl = [
     "id-marl-eval>=0.0.4",
 ]
 movingai = [
-    "numpy>=2.2.4",
+    "numpy<=1.26.4",
     "opencv-python>=4.11.0.86",
 ]
 
