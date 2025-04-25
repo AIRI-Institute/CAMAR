@@ -29,7 +29,7 @@ class labmaze_grid(batched_string_grid):
         num_agents: int = 10,
         obstacle_size: float = 0.1,
         agent_size: float = 0.06,
-        max_free_pos: int = 100,
+        max_free_pos: int = None,
         **labmaze_kwargs,
     ) -> base_map:
         map_str_batch = generate_labmaze_maps(
