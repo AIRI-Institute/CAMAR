@@ -25,7 +25,7 @@ class batched_string_grid(base_map):
         free_pos_str_batch: Optional[List[str]] = None,
         agent_idx_batch: Optional[List[ArrayLike]] = None,
         goal_idx_batch: Optional[List[ArrayLike]] = None,
-        num_agents: Optional[int] = 10,
+        num_agents: int = 10,
         random_agents: Optional[bool] = True,
         random_goals: Optional[bool] = True,
         remove_border: bool = False,

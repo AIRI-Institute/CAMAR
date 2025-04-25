@@ -169,38 +169,51 @@ class Camar:
 
         objects = jnp.vstack((agent_pos, landmark_pos)) # (num_objects, 2)
 
-        # (num_agents, 1, 2) - (1, num_objects, 2) -> (num_agents, num_objects, 2) -> (num_agents, num_objects)
-        distances = jnp.linalg.norm(agent_pos[:, None, :] - objects[None, :, :], axis=-1)
+        # (1, num_objects, 2) - (num_agents, 1, 2) -> (num_agents, num_objecst, 2)
+        ego_objects = objects[None, :, :] - agent_pos[:, None, :]
 
-        nearest_dists, nearest_ids = jax.lax.top_k(-distances, self.max_obs + 1) # (num_agents, self.max_obs + 1)
-        # remove zeros (nearest is the agent itself) -> (num_agents, self.max_obs)
+        # (num_agents, num_objecst, 2) -> (num_agents, num_objecst)
+        dists = jnp.linalg.norm(ego_objects, axis=-1)
+        nearest_dists, nearest_ids = jax.lax.top_k(- dists, self.max_obs + 1) # (num_agents, self.max_obs + 1)
+        # remove zero dists (nearest is the agent itself) -> (num_agents, self.max_obs)
         nearest_ids = nearest_ids[:, 1:]
         nearest_dists = -nearest_dists[:, 1:]
 
-        ego_objects = objects[nearest_ids] - agent_pos[:, None, :] # (num_agents, self.max_obs, 2)
+        nearest_ego_objects = ego_objects[jnp.arange(self.num_agents)[:, None], nearest_ids] # (num_agents, self.max_obs, 2)
+        nearest_rad = jnp.where(nearest_ids < self.num_agents,
+                                self.agent_rad,
+                                self.landmark_rad) # (num_agents, self.max_obs)
 
-        obs = jnp.where(nearest_dists[:, :, None] < self.window,
-                        ego_objects * (1.0 / self.window - 1 / nearest_dists[:, :, None]),
-                        self.placeholder)
+        obs_dists_coeff = (self.agent_rad + nearest_rad) / nearest_dists # (num_agents, self.max_obs)
+        obs_dists = jnp.linalg.norm(nearest_ego_objects * (1.0 - obs_dists_coeff)[:, :, None], axis=-1)  # (num_agents, self.max_obs)
+
+        obs_coeff = (self.window + nearest_rad) / nearest_dists # (num_agents, self.max_obs)
+        obs = nearest_ego_objects * (1.0 - obs_coeff)[:, :, None] # (num_agents, self.max_obs, 2)
+        obs_norm = obs / (self.window - self.agent_rad)
+
+        obs_norm = jnp.where(obs_dists[:, :, None] < self.window,
+                             obs_norm,
+                             0.0)  # (num_agents, self.max_obs, 2)
 
         ego_goal = goal_pos - agent_pos # [num_agents, 2]
 
         goal_dist = jnp.linalg.norm(ego_goal, axis=-1)
 
-        ego_goal_clipped = jnp.where(goal_dist[:, None] > 1.0, ego_goal / goal_dist[:, None], ego_goal)
+        ego_goal_norm = jnp.where(goal_dist[:, None] > 1.0,
+                                  ego_goal / goal_dist[:, None],
+                                  ego_goal)
 
         # ego_goal = - ego_goal
 
-        obs = jnp.concatenate((ego_goal_clipped[:, None, :], obs), axis=1) # (num_agents, self.max_obs + goal, 2)
+        obs = jnp.concatenate((ego_goal_norm[:, None, :], obs_norm), axis=1) # (num_agents, self.max_obs + goal, 2)
 
         return obs.reshape(self.num_agents, self.observation_size)
 
     def get_reward(self, agent_pos: ArrayLike, landmark_pos: ArrayLike, goal_dist: ArrayLike, old_goal_dist: ArrayLike) -> Array:
-        """Return rewards for all agents"""
 
         objects = jnp.vstack((agent_pos, landmark_pos))
 
-        distances = jnp.linalg.norm(agent_pos[:, None, :] - objects[None, :, :], axis=-1)
+        distances = jnp.linalg.norm(objects[None, :, :] - agent_pos[:, None, :], axis=-1)
 
         nearest_dists, nearest_ids = jax.lax.top_k(-distances, 2) # (num_agents, 2)
 
