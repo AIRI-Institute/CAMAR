@@ -1,5 +1,6 @@
 import jax
 import jax.numpy as jnp
+from functools import partial
 
 from .const import CPU_DEVICE
 
@@ -92,6 +93,58 @@ def check_pos(map_array, pos):
     return ~agent_cells.any()
 
 
+# random_grid
+def get_border_landmarks(num_rows, num_cols, half_width, half_height, grain_factor):
+    top_wall = jnp.stack(
+        (
+            jnp.linspace(- half_width, # start
+                            half_width, # end
+                            num_rows * (grain_factor - 1), # num points
+                            endpoint=False),
+            jnp.full((num_rows * (grain_factor - 1), ), # num points
+                        half_height), # y coord of the top wall
+        ),
+        axis=-1,
+    )
+    right_wall = jnp.stack(
+        (
+            jnp.full((num_cols * (grain_factor - 1), ), # num points
+                        half_width), # x coord of the right wall
+            jnp.linspace(half_height, # start
+                            - half_height, # end
+                            num_cols * (grain_factor - 1), # num points
+                            endpoint=False),
+        ),
+        axis=-1,
+    )
+    bottom_wall = jnp.stack(
+        (
+            jnp.linspace(half_width, # start
+                            - half_width, # end
+                            num_rows * (grain_factor - 1), # num points
+                            endpoint=False),
+            jnp.full((num_rows * (grain_factor - 1), ), # num points
+                        - half_height), # y coord of the bottom wall
+        ),
+        axis=-1,
+    )
+    left_wall = jnp.stack(
+        (
+            jnp.full((num_cols * (grain_factor - 1), ), # num points
+                        - half_width), # x coord of the left wall
+            jnp.linspace(- half_height, # start
+                            half_height, # end
+                            num_cols * (grain_factor - 1), # num points
+                            endpoint=False),
+        ),
+        axis=-1,
+    )
+    return jnp.concatenate([top_wall,
+                            right_wall,
+                            left_wall,
+                            bottom_wall])
+
+# movingai
 def delete_movingai_header(map_str):
     map_str = map_str.split("\n")[4:]
     map_str = "\n".join(map_str)
@@ -158,3 +211,53 @@ def detect_edges(img, low_thr, mode="same"):
     edges = jnp.sqrt(edges_x**2 + edges_y**2)
 
     return edges > low_thr
+
+
+def fade(t):
+    return 6*t**5 - 15*t**4 + 10*t**3
+
+
+def lerp(a, b, t):
+    return a + t * (b - a)
+
+
+@partial(jax.jit, static_argnames=("grid_width", "grid_height", ))
+def generate_gradients(key, grid_width, grid_height):
+    angles = jax.random.uniform(key, shape=(grid_width + 1, grid_height + 1), minval=0.0, maxval=2.0*jnp.pi)
+    gradients = jnp.dstack((jnp.cos(angles), jnp.sin(angles)))
+    return gradients
+
+
+@partial(jax.jit, static_argnames=("width", "height", "grid_width", "grid_height"))
+def perlin_noise_vectorized(key, width, height, grid_width, grid_height):
+    gradients = generate_gradients(key, grid_width, grid_height)
+
+    xs = jnp.linspace(0, grid_width, width, endpoint=False)
+    ys = jnp.linspace(0, grid_height, height, endpoint=False)
+    x, y = jnp.meshgrid(xs, ys)
+
+    x0 = x.astype(int)
+    y0 = y.astype(int)
+    x1 = x0 + 1
+    y1 = y0 + 1
+
+    sx = fade(x - x0)
+    sy = fade(y - y0)
+
+    # Top-left
+    n00 = (x - x0) * gradients[x0, y0, 0] + (y - y0) * gradients[x0, y0, 1]
+    # Top-right
+    n10 = (x - x1) * gradients[x1, y0, 0] + (y - y0) * gradients[x1, y0, 1]
+    # Bottom-left
+    n01 = (x - x0) * gradients[x0, y1, 0] + (y - y1) * gradients[x0, y1, 1]
+    # Bottom-right
+    n11 = (x - x1) * gradients[x1, y1, 0] + (y - y1) * gradients[x1, y1, 1]
+
+    # Interpolate the dot products along the x-direction.
+    nx0 = lerp(n00, n10, sx)
+    nx1 = lerp(n01, n11, sx)
+
+    # Interpolate the results along the y-direction to get the final noise.
+    nxy = lerp(nx0, nx1, sy)
+
+    return nxy

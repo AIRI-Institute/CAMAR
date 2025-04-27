@@ -7,11 +7,10 @@ from jax import Array
 from jax.typing import ArrayLike
 
 from .base_map import base_map
+from .utils import get_border_landmarks
 
 
 class random_grid(base_map):
-    """The `RandomGrid` class generates a random grid map with obstacles, agents, and goals."""
-
     def __init__(
         self,
         num_rows: int = 20,
@@ -52,7 +51,7 @@ class random_grid(base_map):
 
         # coordinates for sampling
         self.map_coordinates = jnp.stack(jnp.meshgrid(x_coords, y_coords), axis=-1).reshape(-1, 2) # cell centers of the whole map
-        self.border_landmarks = self.get_border_landmarks(num_rows, num_cols, half_width, half_height, self.grain_factor)
+        self.border_landmarks = get_border_landmarks(num_rows, num_cols, half_width, half_height, self.grain_factor)
 
     @property
     def landmark_rad(self) -> float:
@@ -92,56 +91,6 @@ class random_grid(base_map):
         )
 
         return key, all_landmark_pos, agent_pos, goal_pos
-
-    def get_border_landmarks(self, num_rows, num_cols, half_width, half_height, grain_factor):
-        top_wall = jnp.stack(
-            (
-                jnp.linspace(- half_width, # start
-                             half_width, # end
-                             num_rows * (grain_factor - 1), # num points
-                             endpoint=False),
-                jnp.full((num_rows * (grain_factor - 1), ), # num points
-                         half_height), # y coord of the top wall
-            ),
-            axis=-1,
-        )
-        right_wall = jnp.stack(
-            (
-                jnp.full((num_cols * (grain_factor - 1), ), # num points
-                         half_width), # x coord of the right wall
-                jnp.linspace(half_height, # start
-                             - half_height, # end
-                             num_cols * (grain_factor - 1), # num points
-                             endpoint=False),
-            ),
-            axis=-1,
-        )
-        bottom_wall = jnp.stack(
-            (
-                jnp.linspace(half_width, # start
-                             - half_width, # end
-                             num_rows * (grain_factor - 1), # num points
-                             endpoint=False),
-                jnp.full((num_rows * (grain_factor - 1), ), # num points
-                         - half_height), # y coord of the bottom wall
-            ),
-            axis=-1,
-        )
-        left_wall = jnp.stack(
-            (
-                jnp.full((num_cols * (grain_factor - 1), ), # num points
-                         - half_width), # x coord of the left wall
-                jnp.linspace(- half_height, # start
-                             half_height, # end
-                             num_cols * (grain_factor - 1), # num points
-                             endpoint=False),
-            ),
-            axis=-1,
-        )
-        return jnp.concatenate([top_wall,
-                                right_wall,
-                                left_wall,
-                                bottom_wall])
 
     @partial(jax.vmap, in_axes=[None, 0, None, None], out_axes=1)
     def get_landmarks(self, obstacle, grain_factor, obstacle_size):
