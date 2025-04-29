@@ -66,7 +66,7 @@ class Visualizer:
 
             state_seq_svg = []
             for i, landmark in enumerate(landmark_pos):
-                state_seq_svg.append('<circle class="landmark">')
+                state_seq_svg.append(f'<circle class="landmark" r="{self.landmark_rad}" fill="#84A1AE">')
                 for attribute_name in landmark_pos[landmark]:
                     values = ";".join(
                         map(
@@ -96,7 +96,7 @@ class Visualizer:
                 landmark_x = float(landmark_x)
                 landmark_y = float(landmark_y)
                 landmark_svg.append(
-                    f'<circle class="landmark" cx="{landmark_x:.3f}" cy="{landmark_y:.3f}">  </circle>'
+                    f'<circle class="landmark" cx="{landmark_x:.3f}" cy="{landmark_y:.3f}" r="{self.landmark_rad}" fill="#84A1AE">  </circle>'
                 )
 
             return "\n".join(landmark_svg)
@@ -119,7 +119,7 @@ class Visualizer:
             for i, landmark in enumerate(goal_pos):
                 color = (i * self.color_step) % 360
                 state_seq_svg.append(
-                    f'<circle class="goal" fill="hsl({color}, 100%, 50%)">'
+                    f'<circle class="goal" r="{self.goal_rad}" fill="hsl({color}, 100%, 50%)">'
                 )
                 for attribute_name in goal_pos[landmark]:
                     values = ";".join(
@@ -149,7 +149,7 @@ class Visualizer:
                 goal_x = float(goal_x)
                 goal_y = float(goal_y)
                 goal_svg.append(
-                    f'<circle class="goal" cx="{goal_x:.3f}" cy="{goal_y:.3f}" fill="hsl({color}, 100%, 50%)">  </circle>'
+                    f'<circle class="goal" cx="{goal_x:.3f}" cy="{goal_y:.3f}" r="{self.goal_rad}" fill="hsl({color}, 100%, 50%)">  </circle>'
                 )
 
             return "\n".join(goal_svg)
@@ -173,7 +173,7 @@ class Visualizer:
             for i, agent in enumerate(agent_pos):
                 color = (i * self.color_step) % 360
                 state_seq_svg.append(
-                    f'<circle class="agent" fill="hsl({color}, 70%, 50%)">'
+                    f'<circle class="agent" r="{self.agent_rad}" fill="hsl({color}, 70%, 50%)">'
                 )
                 for attribute_name in agent_pos[agent]:
                     values = ";".join(
@@ -202,7 +202,7 @@ class Visualizer:
                 agent_x = float(agent_x)
                 agent_y = float(agent_y)
                 agent_svg.append(
-                    f'<circle class="agent" cx="{agent_x:.3f}" cy="{agent_y:.3f}" fill="hsl({color}, 70%, 50%)">  </circle>'
+                    f'<circle class="agent" cx="{agent_x:.3f}" cy="{agent_y:.3f}" r="{self.agent_rad}" fill="hsl({color}, 70%, 50%)">  </circle>'
                 )
 
             return "\n".join(agent_svg)
@@ -223,9 +223,9 @@ class Visualizer:
 
         definitions = [
             "<style>",
-            f"\t.landmark {{fill: #84A1AE; r: {self.landmark_rad};}}",
-            f"\t.agent {{r: {self.agent_rad};}}",
-            f"\t.goal {{stroke: black; stroke-width: {self.goal_rad / 4}; r: {self.goal_rad};}}",
+            "\t.landmark {{ }}",
+            "\t.agent {{ }}",
+            f"\t.goal {{stroke: black; stroke-width: {self.goal_rad / 4};}}",
             "</style>",
         ]
         definitions = "\n".join(definitions)
