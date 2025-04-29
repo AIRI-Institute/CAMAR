@@ -203,10 +203,15 @@ class CamarWrapper(_EnvWrapper):
             source={
                 "observation": _ndarray_to_tensor(obs),
                 "reward": _ndarray_to_tensor(reward),
+                "on_goal": _ndarray_to_tensor(self._state.on_goal).view(*self.batch_size, -1, 1),
             },
             batch_size=(*self.batch_size, self._env.num_agents),
             device=self.device,
         )
+
+        time_to_reach_goal = _ndarray_to_tensor(self._state.time_to_reach_goal)
+        flowtime = time_to_reach_goal.sum(dim=-1)
+        makespan, _ = time_to_reach_goal.max(dim=-1)
 
         done = _ndarray_to_tensor(done)
 
@@ -215,6 +220,8 @@ class CamarWrapper(_EnvWrapper):
                 "agents": tensordict_agents,
                 "done": done,
                 "terminated": done.clone(),
+                "flowtime": flowtime,
+                "makespan": makespan,
             },
             batch_size=self.batch_size,
             device=self.device,
@@ -261,9 +268,9 @@ class CamarEnv(CamarWrapper):
 
     def _check_kwargs(self, kwargs: dict):
         if "map_generator" not in kwargs:
-            raise TypeError("Could not find environment key 'map_generator' in kwargs.")
+            raise TypeError("Cannot find the environment key 'map_generator' in kwargs.")
         if "num_envs" not in kwargs:
-            raise TypeError("Could not find environment key 'num_envs' in kwargs.")
+            raise TypeError("Cannot find the environment key 'num_envs' in kwargs.")
 
     def _build_env(
         self,

@@ -62,6 +62,7 @@ class Camar:
         # Environment parameters
         self.max_steps = max_steps
         self.dt = dt
+        self.max_time = self.dt * self.max_steps * (self.frameskip + 1) # for metrics
 
         self.mass = kwargs.get("mass", 1.0)
         self.accel = kwargs.get("accel", 5.0)
@@ -107,7 +108,7 @@ class Camar:
                  agent_pos=agent_pos,
                  agent_vel=agent_vel,
             )
-            return (key, state, u), _
+            return (key, state, u), None
 
         (key, state, u), _ = jax.lax.scan(frameskip, init=(key_w, state, u), xs=None, length=self.frameskip + 1)
 
@@ -125,11 +126,17 @@ class Camar:
 
         goal_keys, goal_pos = self.update_goals(state.goal_keys, state.goal_pos, on_goal)
 
+
+        just_arrived = jnp.logical_not(state.on_goal) & on_goal
+        current_time = (state.step + 1) * self.dt * (self.frameskip + 1)
+        time_to_reach_goal = jnp.where(just_arrived, current_time, state.time_to_reach_goal)
+
         state = state.replace(
             goal_pos = goal_pos,
             step = state.step + 1,
             goal_keys = goal_keys,
             on_goal = on_goal,
+            time_to_reach_goal = time_to_reach_goal,
         )
 
         obs = self.get_obs(state.agent_pos, state.landmark_pos, state.goal_pos)
@@ -153,8 +160,9 @@ class Camar:
             agent_vel = jnp.zeros((self.num_agents, 2)),
             goal_pos = goal_pos,
             landmark_pos = landmark_pos,
-            on_goal = on_goal,
             step = 0,
+            on_goal = on_goal,
+            time_to_reach_goal = jnp.full((self.num_agents, ), self.max_time),
             goal_keys = goal_keys,
         )
 
