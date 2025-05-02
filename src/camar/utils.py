@@ -44,12 +44,14 @@ class State:
     # observation: ArrayLike  # [num_agents, max_obs, 2]
     # reward: ArrayLike  # [num_agents]
 
+    is_collision: ArrayLike # [num_agents, ]
 
     # done: ArrayLike  # bool [num_agents, ]
     step: int  # current step
     # metrics
     on_goal: ArrayLike  # [num_agents, ]
     time_to_reach_goal: ArrayLike  # [num_agents, ]
+    num_collisions: ArrayLike # [num_agents, ]
     # flowtime: float # current flowtime
     # makespan: float # current makespan
 

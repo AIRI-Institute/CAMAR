@@ -59,7 +59,7 @@ class random_grid(base_map):
 
     @property
     def agent_rad(self):
-        return (self.obstacle_size - 2 * self.landmark_rad) * 0.4
+        return (self.obstacle_size - 2 * self.landmark_rad) * 0.25
 
     @property
     def goal_rad(self):

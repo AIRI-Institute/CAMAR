@@ -65,20 +65,17 @@ class RRTState:
 
 class RRT:
     def __init__(
-        self, env, num_samples, collision_func=check_collision, step_size=None
+        self, env, num_samples, step_size, collision_func=check_collision
     ):
         self.num_samples = num_samples
         self.step_size = step_size
-
-        if self.step_size is None:
-            self.step_size = env.obstacle_size
 
         self.agent_rad = env.agent_rad
         self.num_agents = env.num_agents
         self.goal_rad = env.goal_rad
         self.effective_rad = env.agent_rad + env.landmark_rad
         self.sample_limit = jnp.array(
-            [env.width * env.obstacle_size / 2, env.height * env.obstacle_size / 2]
+            [env.width / 2, env.height / 2]
         )
 
         self.check_collision = collision_func

@@ -27,8 +27,8 @@ class labmaze_grid(batched_string_grid):
         max_rooms: int = -1,
         seed: int = 0,
         num_agents: int = 10,
-        obstacle_size: float = 0.1,
-        agent_size: float = 0.06,
+        obstacle_size: float = 0.2,
+        agent_size: float = 0.1,
         max_free_pos: int = None,
         **labmaze_kwargs,
     ) -> base_map:

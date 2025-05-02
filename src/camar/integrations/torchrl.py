@@ -210,6 +210,8 @@ class CamarWrapper(_EnvWrapper):
         )
 
         time_to_reach_goal = _ndarray_to_tensor(self._state.time_to_reach_goal)
+        coordination =  1 - _ndarray_to_tensor(self._state.num_collisions / self._state.step[:, None]).mean(-1) # mean for agents
+
         flowtime = time_to_reach_goal.sum(dim=-1)
         makespan, _ = time_to_reach_goal.max(dim=-1)
 
@@ -222,6 +224,7 @@ class CamarWrapper(_EnvWrapper):
                 "terminated": done.clone(),
                 "flowtime": flowtime,
                 "makespan": makespan,
+                "coordination": coordination,
             },
             batch_size=self.batch_size,
             device=self.device,

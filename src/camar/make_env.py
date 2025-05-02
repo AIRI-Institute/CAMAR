@@ -9,7 +9,7 @@ MAPS_MODULE = "camar.maps"
 
 def make_env(
     map_generator: Optional[Union[str, base_map]] = "random_grid",
-    window: float = 0.8,
+    window: Optional[float] = None,
     placeholder: float = 0.0,
     max_steps: int = 100,
     frameskip: int = 2,
