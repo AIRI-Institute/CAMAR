@@ -9,7 +9,7 @@ class Visualizer:
         animate_agents=True,
         animate_goals=True,
         animate_landmarks=True,
-        fps=100,
+        fps=None,
         color_step=None,
     ):
         self.env = env
@@ -24,7 +24,10 @@ class Visualizer:
             self.animate_goals = False
             self.animate_landmarks = False
 
-        self.fps = fps
+        if fps is None:
+            self.fps = 8 / env.step_dt
+        else:
+            self.fps = fps
 
         if isinstance(self.state_seq, list):
             self.keytimes = [
@@ -33,7 +36,7 @@ class Visualizer:
             ]
             self.keytimes.append(1.0)
             self.keytimes = ";".join(map(str, self.keytimes))
-            self.dur = round(len(self.state_seq) / fps, 3)
+            self.dur = round(len(self.state_seq) / self.fps, 3)
         else:
             self.keytimes = None
             self.dur = None
