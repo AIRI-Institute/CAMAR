@@ -141,6 +141,8 @@ class CamarWrapper(_EnvWrapper):
         self._key = None
         self._vmap_jit_env_reset = jax.vmap(self._env.reset)
         self._vmap_jit_env_step = jax.vmap(self._env.step)
+        self._vmap_jit_env_get_obs = jax.vmap(self._env.get_obs)
+        self._state = None
         # self._state_example = self._make_state_example()
 
     def _set_seed(self, seed: int):
@@ -151,12 +153,44 @@ class CamarWrapper(_EnvWrapper):
 
     def _reset(self, tensordict: TensorDictBase = None, **kwargs) -> TensorDictBase:
         jax = self.jax
-
+        jnp = jax.numpy
+        
         # generate random keys
         self._key, *keys = jax.random.split(self._key, 1 + self.numel())
+        keys = jax.numpy.stack(keys)
 
-        # call env reset with jit and vmap
-        obs, self._state = self._vmap_jit_env_reset(jax.numpy.stack(keys))
+        if tensordict is not None and "_reset" in tensordict.keys():
+            _reset = tensordict.get("_reset")
+            envs_to_reset = _reset.squeeze(-1)
+
+            if envs_to_reset.all():
+                # reset all
+                obs, self._state = self._vmap_jit_env_reset(keys)
+            else:
+                envs_to_reset = _tensor_to_ndarray(envs_to_reset)
+
+                # reset all and select envs_to_reset
+                obs_r, state_r = self._vmap_jit_env_reset(keys)
+
+                obs_old = self._vmap_jit_env_get_obs(
+                    self._state.agent_pos,
+                    self._state.landmark_pos,
+                    self._state.goal_pos
+                )
+                if self._state is None:
+                    raise ValueError("get self._state is None for a partial reset")
+                state_old = self._state
+
+                self._state = jax.tree.map(
+                    lambda x, y: jnp.where(jnp.expand_dims(envs_to_reset, range(1, x.ndim)), x, y),
+                    state_r,
+                    state_old
+                )
+
+                obs = jnp.where(envs_to_reset[:, None, None], obs_r, obs_old)
+        else:
+            # call env reset with jit and vmap
+            obs, self._state = self._vmap_jit_env_reset(keys)
 
         tensordict_agents = TensorDict(
             source={
