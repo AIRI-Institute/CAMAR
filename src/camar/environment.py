@@ -21,7 +21,7 @@ class Camar:
         max_steps: int = 100,
         frameskip: int = 1,
         max_obs: Optional[int] = None,
-        pos_shaping_factor: float = 1.0,
+        pos_shaping_factor: Optional[float] = None,
         dt: float = 0.01,
         damping: float = 0.25,
         contact_force: float = 500,
@@ -32,8 +32,6 @@ class Camar:
 
         self.map_generator = map_generator
 
-        self.pos_shaping_factor = pos_shaping_factor
-
         self.frameskip = frameskip
 
         self.placeholder = placeholder
@@ -43,6 +41,11 @@ class Camar:
         self.landmark_rad = map_generator.landmark_rad
         self.agent_rad = map_generator.agent_rad
         self.goal_rad = map_generator.goal_rad
+
+        if pos_shaping_factor is None:
+            self.pos_shaping_factor = 0.04 / self.agent_rad
+        else:
+            self.pos_shaping_factor = pos_shaping_factor
 
         if window is None:
             self.window = max(self.landmark_rad, self.agent_rad) * 2.5
