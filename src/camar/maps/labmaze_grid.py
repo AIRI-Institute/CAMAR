@@ -6,6 +6,7 @@ from .batched_string_grid import batched_string_grid
 
 def generate_labmaze_maps(num_maps, height, width, max_rooms, seed, **labmaze_kwargs):
     maps = []
+    free_pos = []
     for i in range(num_maps):
         random_maze = labmaze.RandomMaze(
             height=height,
@@ -15,7 +16,8 @@ def generate_labmaze_maps(num_maps, height, width, max_rooms, seed, **labmaze_kw
             **labmaze_kwargs,
         )
         maps.append(str(random_maze.entity_layer))
-    return maps
+        free_pos.append(str(random_maze.variations_layer).replace(".", "*"))
+    return maps, free_pos
 
 
 class labmaze_grid(batched_string_grid):
@@ -32,7 +34,7 @@ class labmaze_grid(batched_string_grid):
         max_free_pos: int = None,
         **labmaze_kwargs,
     ) -> base_map:
-        map_str_batch = generate_labmaze_maps(
+        map_str_batch, free_pos_str_batch = generate_labmaze_maps(
             num_maps=num_maps,
             height=height,
             width=width,
@@ -43,6 +45,7 @@ class labmaze_grid(batched_string_grid):
 
         super().__init__(
             map_str_batch=map_str_batch,
+            free_pos_str_batch=free_pos_str_batch,
             agent_idx_batch=None,
             goal_idx_batch=None,
             num_agents=num_agents,
