@@ -34,8 +34,8 @@ class movingai(batched_string_grid):
         remove_border: bool = True,
         add_border: bool = False,
         num_agents: int = 10,
-        obstacle_size: float = 0.1,
-        agent_size: float = 0.06,
+        obstacle_size: float = 0.2,
+        agent_size: float = 0.1,
     ) -> base_map:
         map_str_batch = get_movingai(map_names)
 
