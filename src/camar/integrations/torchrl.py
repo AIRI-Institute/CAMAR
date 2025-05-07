@@ -148,13 +148,13 @@ class CamarWrapper(_EnvWrapper):
     def _set_seed(self, seed: int):
         jax = self.jax
         if seed is None:
-            raise Exception("Brax requires an integer seed.")
+            raise Exception("CAMAR requires an integer seed.")
         self._key = jax.random.PRNGKey(seed)
 
     def _reset(self, tensordict: TensorDictBase = None, **kwargs) -> TensorDictBase:
         jax = self.jax
         jnp = jax.numpy
-        
+
         # generate random keys
         self._key, *keys = jax.random.split(self._key, 1 + self.numel())
         keys = jax.numpy.stack(keys)
