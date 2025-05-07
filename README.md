@@ -7,7 +7,7 @@ CAMAR (Continuous Action Multi-Agent Routing) Benchmark is a fast, GPU-accelerat
 
 # Installation
 
-Camar can be installed from PyPi:
+Camar can be installed from PyPi (will be available after publication):
 
 ```bash
 pip install camar
