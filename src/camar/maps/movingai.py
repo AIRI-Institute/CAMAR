@@ -1,5 +1,5 @@
 from functools import partial
-from typing import List
+from typing import List, Optional
 
 import jax
 import jax.numpy as jnp
@@ -36,6 +36,7 @@ class movingai(batched_string_grid):
         num_agents: int = 10,
         obstacle_size: float = 0.2,
         agent_size: float = 0.1,
+        max_free_pos: Optional[int] = None,
     ) -> base_map:
         map_str_batch = get_movingai(map_names)
 
@@ -68,4 +69,5 @@ class movingai(batched_string_grid):
             agent_size=agent_size,
             map_array_preprocess=map_array_preprocess,
             free_pos_array_preprocess=free_pos_array_preprocess,
+            max_free_pos=max_free_pos,
         )

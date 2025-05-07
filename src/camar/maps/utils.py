@@ -146,7 +146,7 @@ def get_border_landmarks(num_rows, num_cols, half_width, half_height, grain_fact
 
 # movingai
 def delete_movingai_header(map_str):
-    map_str = map_str.split("\n")[4:]
+    map_str = map_str.replace("\r", "").split("\n")[4:]
     map_str = "\n".join(map_str)
     return map_str
 
