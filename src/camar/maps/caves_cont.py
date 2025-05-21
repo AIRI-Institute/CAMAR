@@ -26,8 +26,8 @@ class caves_cont(base_map):
     ):
         self.num_rows = num_rows
         self.num_cols = num_cols
-        self.height = num_rows * obstacle_size
-        self.width = num_cols * obstacle_size
+        self.obstacle_size = obstacle_size
+        self.agent_size = agent_size
 
         self.grid_num_rows = int(num_rows / scale)
         self.grid_num_cols = int(num_cols / scale)
@@ -46,8 +46,6 @@ class caves_cont(base_map):
 
         self.num_agents = num_agents
 
-        self.obstacle_size = obstacle_size
-        self.agent_size = agent_size
 
         if add_borders:
             grain_factor = 2
@@ -67,6 +65,14 @@ class caves_cont(base_map):
     @property
     def goal_rad(self):
         return self.agent_rad / 2.5
+    
+    @property
+    def height(self):
+        return self.num_cols * self.obstacle_size
+    
+    @property
+    def width(self):
+        return self.num_rows * self.obstacle_size
 
     @partial(jax.jit, static_argnums=[0])
     def reset(self, key: ArrayLike) -> Tuple[Array, Array, Array, Array]:

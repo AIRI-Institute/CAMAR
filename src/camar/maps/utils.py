@@ -2,20 +2,25 @@ import jax
 import jax.numpy as jnp
 from functools import partial
 
-from .const import CPU_DEVICE
+from .const import PREGEN_DEVICE
 
 
 def map_str2array(
     map_str, remove_border, add_border, preprocess=lambda map_array: map_array
 ):
-    map_array = jnp.array(
-        [
-            [1 if char in set("@*#") else 0 for char in line]
-            for line in map_str.split("\n")
-            if line
-        ],
-        device=CPU_DEVICE,
-    )
+    map_array = []
+    for line in map_str.split("\n"):
+        line_array = []
+        if set(line) == set(" ") or not line:
+            continue
+        for char in line.strip():
+            if char in set("@*#"):
+                line_array.append(1)
+            else:
+                line_array.append(0)
+        map_array.append(line_array)
+
+    map_array = jnp.array(map_array, device=PREGEN_DEVICE)
 
     map_array = preprocess(map_array)
 
@@ -41,7 +46,7 @@ def parse_map_array(map_array, obstacle_size, free_pos_array=None):
     num_rows, num_cols = map_array.shape
 
     map_idx_rows, map_idx_cols = jnp.meshgrid(
-        jnp.arange(num_cols, device=CPU_DEVICE), jnp.arange(num_rows, device=CPU_DEVICE)
+        jnp.arange(num_cols, device=PREGEN_DEVICE), jnp.arange(num_rows, device=PREGEN_DEVICE)
     )
 
     height = num_rows * obstacle_size
@@ -77,7 +82,7 @@ def pad_placeholder(pos, num_pos, placeholder=-100.0):
                 shape=(num_pos - pos.shape[0], pos.shape[1]),
                 fill_value=placeholder,
                 dtype=pos.dtype,
-                device=CPU_DEVICE,
+                device=PREGEN_DEVICE,
             ),
         ),
         axis=0,
@@ -201,9 +206,9 @@ def get_movingai(map_names):
 
 
 def detect_edges(img, low_thr, mode="same"):
-    sobel_x = jnp.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], device=CPU_DEVICE)
+    sobel_x = jnp.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], device=PREGEN_DEVICE)
 
-    sobel_y = jnp.array([[-1, -2, -1], [0, 0, 0], [1, 2, 1]], device=CPU_DEVICE)
+    sobel_y = jnp.array([[-1, -2, -1], [0, 0, 0], [1, 2, 1]], device=PREGEN_DEVICE)
 
     edges_x = jax.scipy.signal.convolve2d(img, sobel_x, mode=mode)
     edges_y = jax.scipy.signal.convolve2d(img, sobel_y, mode=mode)

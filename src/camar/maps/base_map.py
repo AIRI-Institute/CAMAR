@@ -8,17 +8,27 @@ from jax.typing import ArrayLike
 class base_map(ABC):
     @property
     @abstractmethod
-    def landmark_rad(self) -> float:  # TODO: various radiuses
+    def landmark_rad(self) -> float:
         pass
 
     @property
     @abstractmethod
-    def agent_rad(self) -> float:  # TODO: various radiuses
+    def agent_rad(self) -> float:
         pass
 
     @property
     @abstractmethod
-    def goal_rad(self) -> float:  # TODO: various radiuses
+    def goal_rad(self) -> float:
+        pass
+
+    @property
+    @abstractmethod
+    def height(self) -> float:
+        pass
+
+    @property
+    @abstractmethod
+    def width(self) -> float:
         pass
 
     def reset(

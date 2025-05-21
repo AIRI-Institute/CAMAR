@@ -7,7 +7,7 @@ from jax import Array
 from jax.typing import ArrayLike
 
 from .base_map import base_map
-from .const import GPU_DEVICE
+from .const import ENV_DEVICE
 from .utils import idx2pos, map_str2array, parse_map_array, random_truncate
 
 
@@ -69,14 +69,14 @@ class string_grid(base_map):
             goal_cells = map_array[goal_idx[:, 0], goal_idx[:, 1]]
             assert ~goal_cells.any(), f"goal_idx must be free. got {goal_cells}"
 
-        self.landmark_pos, free_pos, self.height, self.width = parse_map_array(
+        self.landmark_pos, free_pos, self._height, self._width = parse_map_array(
             map_array, obstacle_size, free_pos_array
         )
-        self.landmark_pos = self.landmark_pos.to_device(GPU_DEVICE)
+        self.landmark_pos = self.landmark_pos.to_device(ENV_DEVICE)
 
         if max_free_pos is not None:
             free_pos = random_truncate(free_pos, max_free_pos)
-        free_pos = free_pos.to_device(GPU_DEVICE)
+        free_pos = free_pos.to_device(ENV_DEVICE)
 
         if agent_idx is not None:
             agent_pos = idx2pos(
@@ -124,6 +124,14 @@ class string_grid(base_map):
     @property
     def goal_rad(self):
         return self.agent_rad / 2.5
+    
+    @property
+    def height(self):
+        return self._height
+    
+    @property
+    def width(self):
+        return self._width
 
     @partial(jax.jit, static_argnums=[0])
     def reset(self, key: ArrayLike) -> Tuple[Array, Array, Array, Array]:

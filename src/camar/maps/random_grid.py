@@ -27,9 +27,6 @@ class random_grid(base_map):
         self.grain_factor = grain_factor
         self.obstacle_size = obstacle_size
 
-        self.width = num_rows * obstacle_size
-        self.height = num_cols * obstacle_size
-
         # helpful params
         self.num_obstacles = int(obstacle_density * num_rows * num_cols)
         self.num_landmarks = self.num_obstacles * 4 * (self.grain_factor - 1)
@@ -64,6 +61,14 @@ class random_grid(base_map):
     @property
     def goal_rad(self):
         return self.agent_rad / 2.5
+    
+    @property
+    def height(self):
+        return self.num_cols * self.obstacle_size
+    
+    @property
+    def width(self):
+        return self.num_rows * self.obstacle_size
 
     @partial(jax.jit, static_argnums=[0])
     def reset(self, key: ArrayLike) -> Tuple[Array, Array, Array, Array]:

@@ -7,7 +7,7 @@ from jax import Array
 from jax.typing import ArrayLike
 
 from .base_map import base_map
-from .const import GPU_DEVICE
+from .const import ENV_DEVICE
 from .utils import (
     check_pos,
     idx2pos,
@@ -148,14 +148,14 @@ class batched_string_grid(base_map):
         )
 
         # check height in a batch
-        self.height = height_batch[0]
-        assert all(map(lambda height: height == self.height, height_batch)), (
+        self._height = height_batch[0]
+        assert all(map(lambda height: height == self._height, height_batch)), (
             "map height must be the same in a batch."
         )
 
         # check width in a batch
-        self.width = width_batch[0]
-        assert all(map(lambda width: width == self.width, width_batch)), (
+        self._width = width_batch[0]
+        assert all(map(lambda width: width == self._width, width_batch)), (
             "map width must be the same in a batch."
         )
 
@@ -186,7 +186,7 @@ class batched_string_grid(base_map):
             axis=0,
         )
 
-        self.landmark_pos_batch = self.landmark_pos_batch.to_device(GPU_DEVICE)
+        self.landmark_pos_batch = self.landmark_pos_batch.to_device(ENV_DEVICE)
 
         free_pos_batch = jnp.stack(
             list(
@@ -198,12 +198,12 @@ class batched_string_grid(base_map):
             axis=0,
         )
 
-        free_pos_batch = free_pos_batch.to_device(GPU_DEVICE)
+        free_pos_batch = free_pos_batch.to_device(ENV_DEVICE)
 
         if agent_idx_batch is not None:
             agent_pos_batch = jax.vmap(idx2pos, in_axes=[0, 0, None, None, None])(
-                agent_idx_batch[:, :, 0],
-                agent_idx_batch[:, :, 1],
+                jnp.array(agent_idx_batch)[:, :, 0],
+                jnp.array(agent_idx_batch)[:, :, 1],
                 obstacle_size,
                 self.height,
                 self.width,
@@ -238,8 +238,8 @@ class batched_string_grid(base_map):
 
         if goal_idx_batch is not None:
             goal_pos_batch = jax.vmap(idx2pos, in_axes=[0, 0, None, None, None])(
-                goal_idx_batch[:, :, 0],
-                goal_idx_batch[:, :, 1],
+                jnp.array(goal_idx_batch)[:, :, 0],
+                jnp.array(goal_idx_batch)[:, :, 1],
                 obstacle_size,
                 self.height,
                 self.width,
@@ -283,6 +283,14 @@ class batched_string_grid(base_map):
     @property
     def goal_rad(self):
         return self.agent_rad / 2.5
+    
+    @property
+    def height(self):
+        return self._height
+    
+    @property
+    def width(self):
+        return self._width
 
     @partial(jax.jit, static_argnums=[0])
     def reset(self, key: ArrayLike) -> Tuple[Array, Array, Array, Array]:

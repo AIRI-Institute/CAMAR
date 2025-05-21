@@ -28,8 +28,8 @@ class Box:
     def sample(self, rng: ArrayLike) -> Array:
         """Sample random action uniformly from 1D continuous range."""
         return jax.random.uniform(
-            rng, shape=self.shape, minval=self.low, maxval=self.high
-        ).astype(self.dtype)
+            rng, shape=self.shape, minval=self.low, maxval=self.high, dtype=self.dtype,
+        )
 
 
 @struct.dataclass

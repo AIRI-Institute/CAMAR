@@ -6,7 +6,7 @@ import jax.numpy as jnp
 
 from .base_map import base_map
 from .batched_string_grid import batched_string_grid
-from .const import CPU_DEVICE
+from .const import PREGEN_DEVICE
 from .utils import detect_edges, get_movingai
 
 
@@ -16,7 +16,7 @@ def preprocess(map_array, height, width, low_thr, return_edges=True):
 
     map_array = np.array(map_array)
     map_array = cv2.resize(map_array, (height, width), interpolation=cv2.INTER_NEAREST)
-    map_array = jnp.asarray(map_array, device=CPU_DEVICE)
+    map_array = jnp.asarray(map_array, device=PREGEN_DEVICE)
 
     if return_edges:
         map_array = detect_edges(map_array, low_thr)

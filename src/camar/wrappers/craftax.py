@@ -53,13 +53,14 @@ class AutoResetEnvWrapper(GymnaxWrapper):
 
         rng, _rng = jax.random.split(rng)
         obs_st, state_st, reward, done, info = self._env.step(_rng, state, action)
+        done = done.reshape(1, )
 
         rng, _rng = jax.random.split(rng)
         obs_re, state_re = self._env.reset(_rng)
 
         # Auto-reset environment based on termination
         def auto_reset(done, state_re, state_st, obs_re, obs_st):
-            state = jax.tree_map(
+            state = jax.tree.map(
                 lambda x, y: jnp.where(jnp.expand_dims(done, range(1, x.ndim)), x, y), state_re, state_st
             )
             obs = jnp.where(done[:, None, None], obs_re, obs_st)
@@ -123,18 +124,18 @@ class OptimisticResetVecEnvWrapper(GymnaxWrapper):
         reset_indexes = reset_indexes.at[being_reset].set(jnp.arange(self.num_resets))
 
         obs_re = obs_re[reset_indexes]
-        state_re = jax.tree_map(lambda x: x[reset_indexes], state_re)
+        state_re = jax.tree.map(lambda x: x[reset_indexes], state_re)
 
         # Auto-reset environment based on termination
         def auto_reset(done, state_re, state_st, obs_re, obs_st):
-            state = jax.tree_map(
+            state = jax.tree.map(
                 lambda x, y: jnp.where(jnp.expand_dims(done, range(1, x.ndim)), x, y), state_re, state_st
             )
             obs = jnp.where(done[:, None, None], obs_re, obs_st)
 
             return obs, state
 
-        state, obs = jax.vmap(auto_reset)(done, state_re, state_st, obs_re, obs_st)
+        obs, state = auto_reset(done, state_re, state_st, obs_re, obs_st)
 
         return obs, state, reward, done, info
 
