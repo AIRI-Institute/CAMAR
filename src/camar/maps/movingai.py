@@ -1,7 +1,6 @@
 from functools import partial
 from typing import List, Optional
 
-import jax
 import jax.numpy as jnp
 
 from .base_map import base_map

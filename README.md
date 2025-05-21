@@ -2,7 +2,7 @@
 <img src="images/string_grid_camar.svg" width="300" height="300" />
 </p>
 
-# 🦟 CAMAR
+# CAMAR
 CAMAR (Continuous Action Multi-Agent Routing) Benchmark is a fast, GPU-accelerated environment for multi-agent navigation and collision avoidance tasks in continuous state and action spaces. Designed to bridge the gap between multi-robot systems and MARL research, CAMAR emphasizes efficient simulation speeds (exceeding 100K+ Steps Per Second) and evaluation protocols to evaluate agent navigation capabilities.
 
 # Installation

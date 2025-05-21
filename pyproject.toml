@@ -1,26 +1,30 @@
 [project]
 name = "camar"
 version = "0.1.0"
-description = "Add your description here"
+description = "CAMAR: A high-performance multi-agent reinforcement learning environment for continuous multi-agent pathfinding"
 readme = "README.md"
 authors = [
     { name = "Square596", email = "artem211201@gmail.com" }
 ]
 requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+
 dependencies = [
     "flax>=0.9.0",
     "jax>=0.4.31",
 ]
-
-[project.scripts]
-contmapf = "contmapf:main"
 
 [project.optional-dependencies]
 cuda12 = [
     "jax[cuda12]>=0.4.31",
 ]
 labmaze = [
-    "labmaze>=1.0.5",
+    "labmaze>=1.0.6",
 ]
 movingai = [
     "numpy>=1.24.0",

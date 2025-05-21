@@ -1,14 +1,14 @@
-import labmaze
-
 from .base_map import base_map
 from .batched_string_grid import batched_string_grid
 
 
 def generate_labmaze_maps(num_maps, height, width, max_rooms, seed, **labmaze_kwargs):
+    from labmaze import RandomMaze
+    
     maps = []
     free_pos = []
     for i in range(num_maps):
-        random_maze = labmaze.RandomMaze(
+        random_maze = RandomMaze(
             height=height,
             width=width,
             max_rooms=max_rooms,
