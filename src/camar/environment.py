@@ -153,7 +153,7 @@ class Camar:
             num_collisions = num_collisions,
         )
 
-        obs = self.get_obs(state.agent_pos, state.landmark_pos, state.goal_pos)
+        obs = self.get_obs(state)
 
         return obs, state, reward, done, {}
 
@@ -163,7 +163,6 @@ class Camar:
 
         goal_keys, landmark_pos, agent_pos, goal_pos = self.map_reset(key)
 
-        obs = self.get_obs(agent_pos, landmark_pos, goal_pos)
         # reward = self.get_reward(agent_pos, all_landmark_pos, goal_pos)
 
         goal_dist = jnp.linalg.norm(agent_pos - goal_pos, axis=-1)
@@ -182,6 +181,8 @@ class Camar:
             goal_keys = goal_keys,
         )
 
+        obs = self.get_obs(state)
+
         return obs, state
 
     @partial(jax.vmap, in_axes=[None, 0, None])
@@ -189,7 +190,10 @@ class Camar:
         return jnp.linalg.norm(a_pos - p_pos, axis=-1)
 
     @partial(jax.jit, static_argnums=[0])
-    def get_obs(self, agent_pos: ArrayLike, landmark_pos: ArrayLike, goal_pos: ArrayLike) -> Array:
+    def get_obs(self, state: State) -> Array:
+        agent_pos = state.agent_pos
+        goal_pos = state.goal_pos
+        landmark_pos = state.landmark_pos
 
         objects = jnp.vstack((agent_pos, landmark_pos)) # (num_objects, 2)
 

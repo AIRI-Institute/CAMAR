@@ -139,9 +139,10 @@ class CamarWrapper(_EnvWrapper):
     def _init_env(self):
         jax = self.jax
         self._key = None
-        self._vmap_jit_env_reset = jax.vmap(self._env.reset)
-        self._vmap_jit_env_step = jax.vmap(self._env.step)
-        self._vmap_jit_env_get_obs = jax.vmap(self._env.get_obs)
+        self._vmap_jit_env_reset = jax.jit(jax.vmap(self._env.reset))
+        self._vmap_jit_env_step = jax.jit(jax.vmap(self._env.step))
+        self._vmap_jit_env_get_obs = jax.jit(jax.vmap(self._env.get_obs))
+        self._jit_partial_reset = jax.jit(self._partial_reset)
         self._state = None
         # self._state_example = self._make_state_example()
 
@@ -150,6 +151,23 @@ class CamarWrapper(_EnvWrapper):
         if seed is None:
             raise Exception("CAMAR requires an integer seed.")
         self._key = jax.random.PRNGKey(seed)
+
+    def _partial_reset(self, keys, state, envs_to_reset):
+        obs_r, state_r = self._vmap_jit_env_reset(keys)
+
+        obs_old = self._vmap_jit_env_get_obs(state)
+
+        state_old = state
+
+        state = self.jax.tree.map(
+            lambda x, y: self.jax.numpy.where(self.jax.numpy.expand_dims(envs_to_reset, range(1, x.ndim)), x, y),
+            state_r,
+            state_old
+        )
+
+        obs = self.jax.numpy.where(envs_to_reset[:, None, None], obs_r, obs_old)
+
+        return obs, state
 
     def _reset(self, tensordict: TensorDictBase = None, **kwargs) -> TensorDictBase:
         jax = self.jax
@@ -169,25 +187,7 @@ class CamarWrapper(_EnvWrapper):
             else:
                 envs_to_reset = _tensor_to_ndarray(envs_to_reset)
 
-                # reset all and select envs_to_reset
-                obs_r, state_r = self._vmap_jit_env_reset(keys)
-
-                obs_old = self._vmap_jit_env_get_obs(
-                    self._state.agent_pos,
-                    self._state.landmark_pos,
-                    self._state.goal_pos
-                )
-                if self._state is None:
-                    raise ValueError("get self._state is None for a partial reset")
-                state_old = self._state
-
-                self._state = jax.tree.map(
-                    lambda x, y: jnp.where(jnp.expand_dims(envs_to_reset, range(1, x.ndim)), x, y),
-                    state_r,
-                    state_old
-                )
-
-                obs = jnp.where(envs_to_reset[:, None, None], obs_r, obs_old)
+                obs, self._state = self._jit_partial_reset(keys, self._state, envs_to_reset)
         else:
             # call env reset with jit and vmap
             obs, self._state = self._vmap_jit_env_reset(keys)
