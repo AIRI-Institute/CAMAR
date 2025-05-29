@@ -40,10 +40,6 @@ jobs:
         path: .cache/movingai
         key: ${{ runner.os }}-movingai
 
-    - name: Log cache status
-      run: |
-        echo "Cache hit: ${{ steps.cache-movingai.outputs.cache-hit }}"
-
     # test only environment logic, without torchrl integrations
     - name: Install the project
       run: uv sync --locked --dev --extra labmaze --extra movingai
@@ -79,10 +75,6 @@ jobs:
       with:
         path: .cache/movingai
         key: ${{ runner.os }}-movingai
-
-    - name: Log cache status
-      run: |
-        echo "Cache hit: ${{ steps.cache-movingai.outputs.cache-hit }}"
 
     - name: Install the project
       run: uv sync --locked --dev --extra movingai
