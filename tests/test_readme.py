@@ -119,36 +119,37 @@ class TestReadmeExamples:
 
         string_grid_map = string_grid(map_str=map_str_readme, num_agents=8)
         random_grid_map_custom = random_grid(num_agents=4, num_rows=10, num_cols=10)
-        
-        try:
-            labmaze_map = labmaze_grid(
-                num_maps=2, num_agents=3, height=7, width=7
-            )  # Reduced for testing
-        except ModuleNotFoundError:
-            pass
 
         env1 = camar_v0(string_grid_map)
         env2 = camar_v0(random_grid_map_custom)
-        env3 = camar_v0(labmaze_map)
 
         assert isinstance(env1.map_generator, string_grid)
         assert isinstance(env2.map_generator, random_grid)
-        assert isinstance(env3.map_generator, labmaze_grid)
         assert env1.num_agents == 8
         assert env2.num_agents == 4
-        assert env3.num_agents == 3
 
         env1_str = camar_v0("string_grid", map_str=map_str_readme, num_agents=8)
         env2_str = camar_v0("random_grid", num_agents=4, num_rows=10, num_cols=10)
 
-        try:
-            env3_str = camar_v0("labmaze_grid", num_maps=2, num_agents=3, height=7, width=7)
-        except ModuleNotFoundError:
-            pass
-
         assert isinstance(env1_str.map_generator, string_grid)
         assert isinstance(env2_str.map_generator, random_grid)
-        assert isinstance(env3_str.map_generator, labmaze_grid)
         assert env1_str.num_agents == 8
         assert env2_str.num_agents == 4
-        assert env3_str.num_agents == 3
+
+        # labmaze is not supported by python=3.13
+        try:
+            labmaze_map = labmaze_grid(
+                num_maps=2, num_agents=3, height=7, width=7
+            )  # Reduced for testing
+            env3 = camar_v0(labmaze_map)
+
+            assert isinstance(env3.map_generator, labmaze_grid)
+            assert env3.num_agents == 3
+
+            env3_str = camar_v0("labmaze_grid", num_maps=2, num_agents=3, height=7, width=7)
+
+            assert isinstance(env3_str.map_generator, labmaze_grid)
+            assert env3_str.num_agents == 3
+
+        except ModuleNotFoundError:
+            pass
