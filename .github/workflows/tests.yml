@@ -70,6 +70,7 @@ jobs:
         version: "0.7.8"
         python-version: "3.13"
         enable-cache: true
+        cache-dependency-glob: "**/pyproject.toml"
 
     # use cached movingai maps
     - name: Cache .cache/movingai
