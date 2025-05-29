@@ -1,4 +1,6 @@
 import math
+from .const import LANDMARK_COLOR, COLORS
+from .utils import hex_to_hsl
 
 
 class Visualizer:
@@ -11,6 +13,8 @@ class Visualizer:
         animate_landmarks=True,
         fps=None,
         color_step=None,
+        use_all_colors=False,
+        agent_transparancy=0.8,
     ):
         self.env = env
         self.state_seq = state_seq
@@ -43,11 +47,14 @@ class Visualizer:
 
         self.width = self.env.width
         self.height = self.env.height
+        self.scale = max(self.width, self.height) / 512
 
         self.landmark_rad = self.env.landmark_rad
         self.agent_rad = self.env.agent_rad
         self.goal_rad = self.env.goal_rad
 
+        self.use_all_colors = use_all_colors
+        self.agent_transparancy = str(agent_transparancy)
         if color_step is not None:
             self.color_step = color_step
         else:
@@ -64,12 +71,17 @@ class Visualizer:
                 for landmark, (landmark_x, landmark_y) in enumerate(state.landmark_pos):
                     if landmark not in landmark_pos:
                         landmark_pos[landmark] = {"cx": [], "cy": []}
-                    landmark_pos[landmark]["cx"].append(float(landmark_x))
-                    landmark_pos[landmark]["cy"].append(float(landmark_y))
+                    landmark_pos[landmark]["cx"].append(float(landmark_x) / self.scale)
+                    landmark_pos[landmark]["cy"].append(float(landmark_y) / self.scale)
 
             state_seq_svg = []
             for i, landmark in enumerate(landmark_pos):
-                state_seq_svg.append(f'<circle class="landmark" r="{self.landmark_rad}" fill="#84A1AE">')
+
+                hex_color = LANDMARK_COLOR
+                hue, saturation, lightness = hex_to_hsl(hex_color)
+                color = f"hsl({hue}, {saturation}%, {lightness}%)"
+
+                state_seq_svg.append(f'<circle class="landmark" r="{self.landmark_rad / self.scale}" fill="{color}">')
                 for attribute_name in landmark_pos[landmark]:
                     values = ";".join(
                         map(
@@ -96,10 +108,15 @@ class Visualizer:
 
             landmark_svg = []
             for landmark_x, landmark_y in state.landmark_pos:
-                landmark_x = float(landmark_x)
-                landmark_y = float(landmark_y)
+
+                hex_color = LANDMARK_COLOR
+                hue, saturation, lightness = hex_to_hsl(hex_color)
+                color = f"hsl({hue}, {saturation}%, {lightness}%)"
+
+                landmark_x = float(landmark_x) / self.scale
+                landmark_y = float(landmark_y) / self.scale
                 landmark_svg.append(
-                    f'<circle class="landmark" cx="{landmark_x:.3f}" cy="{landmark_y:.3f}" r="{self.landmark_rad}" fill="#84A1AE">  </circle>'
+                    f'<circle class="landmark" cx="{landmark_x:.3f}" cy="{landmark_y:.3f}" r="{self.landmark_rad / self.scale}" fill="{color}">  </circle>'
                 )
 
             return "\n".join(landmark_svg)
@@ -115,14 +132,22 @@ class Visualizer:
                 for goal, (goal_x, goal_y) in enumerate(state.goal_pos):
                     if goal not in goal_pos:
                         goal_pos[goal] = {"cx": [], "cy": []}
-                    goal_pos[goal]["cx"].append(float(goal_x))
-                    goal_pos[goal]["cy"].append(float(goal_y))
+                    goal_pos[goal]["cx"].append(float(goal_x) / self.scale)
+                    goal_pos[goal]["cy"].append(float(goal_y) / self.scale)
 
             state_seq_svg = []
             for i, landmark in enumerate(goal_pos):
-                color = (i * self.color_step) % 360
+
+                if self.use_all_colors:
+                    color = (i * self.color_step) % 360
+                    color = f"hsl({color}, 100%, 50%)"
+                else:
+                    hex_color = COLORS[i % len(COLORS)]
+                    hue, saturation, lightness = hex_to_hsl(hex_color)
+                    color = f"hsl({hue}, {saturation}%, {lightness}%)"
+
                 state_seq_svg.append(
-                    f'<circle class="goal" r="{self.goal_rad}" fill="hsl({color}, 100%, 50%)">'
+                    f'<circle class="goal" r="{self.goal_rad / self.scale}" fill="{color}">'
                 )
                 for attribute_name in goal_pos[landmark]:
                     values = ";".join(
@@ -148,11 +173,19 @@ class Visualizer:
 
             goal_svg = []
             for i, (goal_x, goal_y) in enumerate(state.goal_pos):
-                color = (i * self.color_step) % 360
-                goal_x = float(goal_x)
-                goal_y = float(goal_y)
+
+                if self.use_all_colors:
+                    color = (i * self.color_step) % 360
+                    color = f"hsl({color}, 100%, 50%)"
+                else:
+                    hex_color = COLORS[i % len(COLORS)]
+                    hue, saturation, lightness = hex_to_hsl(hex_color)
+                    color = f"hsl({hue}, {saturation}%, {lightness}%)"
+
+                goal_x = float(goal_x) / self.scale
+                goal_y = float(goal_y) / self.scale
                 goal_svg.append(
-                    f'<circle class="goal" cx="{goal_x:.3f}" cy="{goal_y:.3f}" r="{self.goal_rad}" fill="hsl({color}, 100%, 50%)">  </circle>'
+                    f'<circle class="goal" cx="{goal_x:.3f}" cy="{goal_y:.3f}" r="{self.goal_rad / self.scale}" fill="{color}">  </circle>'
                 )
 
             return "\n".join(goal_svg)
@@ -169,14 +202,22 @@ class Visualizer:
                     if agent not in agent_pos:
                         agent_pos[agent] = {"cx": [], "cy": []}
 
-                    agent_pos[agent]["cx"].append(float(agent_x))
-                    agent_pos[agent]["cy"].append(float(agent_y))
+                    agent_pos[agent]["cx"].append(float(agent_x) / self.scale)
+                    agent_pos[agent]["cy"].append(float(agent_y) / self.scale)
 
             state_seq_svg = []
             for i, agent in enumerate(agent_pos):
-                color = (i * self.color_step) % 360
+
+                if self.use_all_colors:
+                    color = (i * self.color_step) % 360
+                    color = f"hsl({color}, 100%, 50%)"
+                else:
+                    hex_color = COLORS[i % len(COLORS)]
+                    hue, saturation, lightness = hex_to_hsl(hex_color)
+                    color = f"hsla({hue}, {saturation}%, {lightness}%, {self.agent_transparancy})"
+
                 state_seq_svg.append(
-                    f'<circle class="agent" r="{self.agent_rad}" fill="hsl({color}, 70%, 50%)">'
+                    f'<circle class="agent" r="{self.agent_rad / self.scale}" fill="{color}">'
                 )
                 for attribute_name in agent_pos[agent]:
                     values = ";".join(
@@ -201,21 +242,31 @@ class Visualizer:
                 state = self.state_seq
             agent_svg = []
             for i, (agent_x, agent_y) in enumerate(state.agent_pos):
-                color = (i * self.color_step) % 360
-                agent_x = float(agent_x)
-                agent_y = float(agent_y)
+
+                if self.use_all_colors:
+                    color = (i * self.color_step) % 360
+                    color = f"hsl({color}, 100%, 50%)"
+                else:
+                    hex_color = COLORS[i % len(COLORS)]
+                    hue, saturation, lightness = hex_to_hsl(hex_color)
+                    color = f"hsla({hue}, {saturation}%, {lightness}%, {self.agent_transparancy})"
+
+                agent_x = float(agent_x) / self.scale
+                agent_y = float(agent_y) / self.scale
                 agent_svg.append(
-                    f'<circle class="agent" cx="{agent_x:.3f}" cy="{agent_y:.3f}" r="{self.agent_rad}" fill="hsl({color}, 70%, 50%)">  </circle>'
+                    f'<circle class="agent" cx="{agent_x:.3f}" cy="{agent_y:.3f}" r="{self.agent_rad / self.scale}" fill="{color}">  </circle>'
                 )
 
             return "\n".join(agent_svg)
 
     def render(self):
-        scale = max(self.width, self.height) / 512
-        scaled_width = math.ceil(self.width / scale)
-        scaled_height = math.ceil(self.height / scale)
+        scaled_width = math.ceil(self.width / self.scale)
+        scaled_height = math.ceil(self.height / self.scale)
 
-        view_box = (-self.width / 2, -self.height / 2, self.width, self.height)
+        view_box = (-self.width / 2 / self.scale,
+                    -self.height / 2 / self.scale,
+                    self.width / self.scale,
+                    self.height / self.scale)
 
         svg_header = [
             '<?xml version="1.0" encoding="UTF-8"?>',
@@ -228,7 +279,7 @@ class Visualizer:
             "<style>",
             "\t.landmark {{ }}",
             "\t.agent {{ }}",
-            f"\t.goal {{stroke: black; stroke-width: {self.goal_rad / 4};}}",
+            f"\t.goal {{stroke: {LANDMARK_COLOR}; stroke-width: {self.goal_rad / 2 / self.scale};}}",
             "</style>",
         ]
         definitions = "\n".join(definitions)
