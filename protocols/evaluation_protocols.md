@@ -7,6 +7,18 @@ We adapt ["A Standardised Performance Evaluation Protocol for Cooperative MARL"]
 
 Below, we **(a)** slightly adopt most of the original default parameters, and **(b)** introduce three "difficulty tiers" of evaluation protocols — **[Easy](#31-protocol-easy--generalisation-to-unseen-task-seeds), [Medium](#32-protocol-medium--generalisation-to-new-maps-of-similar-difficulty), [Hard](#33-protocol-hard--generalisation-to-unseen-map-families--number-of-agents)** — each targeting a different notion of generalisation.
 
+Here is a **short overview** of all three protocols. For full details, see the sections below.
+
+|                                        | **Easy**                                                                                                                                                                        | **Medium**                                                                                                                                                                                                                                     | **Hard**                                                                                                                                                               |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Why**                                | Test that the method can solve the problem without testing generalisation.                                                                                                      | Test that the method can solve the problem *and* generalise across similar map types.                                                                                                                                                          | Test that the method can generalise to near-real-world settings.                                                                                                       |
+| **How to train & evaluate**            | **Train on** `random_grid_h20_w20_a8_o0` (see [`protocols/easy-medium/`](./easy-medium/))<br>**Evaluate on** the same `random_grid_h20_w20_a8_o0`<br>**Repeat** for all 12 maps | **Train on** `random_grid_h20_w20_a8_o0` (see [`protocols/easy-medium/`](./easy-medium/))<br>**Evaluate on** **all 6** maps with the same number of agents (do not test generalization on the number of agents)<br> **Repeat** for all 12 maps | **Train on** any map excluding MovingAI<br>**Evaluate on** MovingAI street collection ([`protocols/hard/eval/street/`](./hard/eval/street/)) with varying agent counts |
+| **Total number of models/evaluations** | 12 trained models, 12 evaluations (each 1 K episodes)                                                                                                                           | 12 trained models, 72 evaluations (each 1 K episodes)                                                                                                                                                                                          | 1 training model, TODO evaluations (each 1 K episodes).                                                                                                                |
+| **What to report**                     | `Final scores` - mandatory<br>`sample-efficiency curves` - strongly recommended                                                                                                 | `Final scores` - mandatory<br>`sample-efficiency curves` - recommended                                                                                                                                                                         | `Final scores` - mandatory<br>`metrics vs num_agents` - mandatory<br>`sample-efficiency curves` - if resources allow                                                   |
+
+1. Include comparisons with other methods on the same charts/tables.
+2. Make sure data for all charts and tables are publicly available (e.g. as CSVs in a GitHub repo or supplementary).
+
 ---
 
 > **Input:**
@@ -73,7 +85,7 @@ Below, we **(a)** slightly adopt most of the original default parameters, and **
       *  Compute the normalized absolute return as the mean return of all evaluation episodes using the best joint policy found during training:
 
       $G_{norm} \left( a,r,t \right) = \frac{G_{t}^{a,r} - \min_{a',r',t'} G_{t'}^{a',r'}}{\max_{a',r',t'} G_{t'}^{a',r'} - \min_{a',r',t'} G_{t'}^{a',r'}}$
-      
+
       *  For each algorithm $a$, form an evaluation matrix $\{G_{t}^{a,r}\}$ with shape $(R,|T|)$.
    2. **Aggregated Statistics.**
 
