@@ -11,31 +11,31 @@ Below, we **(a)** slightly adopt most of the original default parameters, and **
 
 > **Input:**
 >
-> * A family of maps $\mathcal{M}$.
-> * For each map $m \in \mathcal{M}$, a set of pathfinding tasks $\mathcal{T}_m$. Each task $t \in \mathcal{T}_m$ consists of start/goal locations for all agents.
-> * A suite of algorithms $\mathcal{A}$.
+> *   A family of maps $\mathcal{M}$.
+> *   For each map $m \in \mathcal{M}$, a set of pathfinding tasks $\mathcal{T}_m$. Each task $t \in \mathcal{T}_m$ consists of start/goal locations for all agents.
+> *   A suite of algorithms $\mathcal{A}$.
 
 ### 1. Evaluation Parameters – Defaults
 
 1. **Training Timesteps $T$.**
 
-   * Off‐policy methods: $T = 2M$ timesteps.
-   * On‐policy methods: $T = 10M$ timesteps.
+   *  Off‐policy methods: $T = 2M$ timesteps.
+   *  On‐policy methods: $T = 10M$ timesteps.
 
 2. **Independent Training Runs $R$.**
 
-   * $R = 10$ independent seeds/runs.
-   * *(If resources are tight, consider $R \ge 3$; ideally $R=10$ for robust statistics.)*
+   *  $R = 10$ independent seeds/runs.
+   *  *(If resources are tight, consider* $R \ge 3$*; ideally* $R=10$ *for robust statistics.)*
 
 3. **Evaluation Episodes per Interval $E$.**
 
-   * $E = 1K$ episodes.
-   * *(Since CAMAR is fully vectorised, running 1 000 environments in parallel gives almost the best SPS)*
+   *  $E = 1K$ episodes.
+   *  *(Since CAMAR is fully vectorised, running 1 000 environments in parallel gives almost the best SPS)*
 
 4. **Evaluation Intervals $\mathcal{I}$.**
 
-   * Off‐policy: every $10K$ training timesteps.
-   * On‐policy: every $100K$ training timesteps.
+   *  Off‐policy: every $10K$ training timesteps.
+   *  On‐policy: every $100K$ training timesteps.
 
 ---
 
@@ -43,21 +43,21 @@ Below, we **(a)** slightly adopt most of the original default parameters, and **
 
 1. **Performance Metrics**
 
-   * **Training Return** $G$ *(higher is better)*: the cumulative scalar reward used by the RL algorithm (only for sample efficiency charts).
+   *  **Training Return** $G$ *(higher is better)*: the cumulative scalar reward used by the RL algorithm (only for sample efficiency charts).
 
-   * **Success Rate** $SR$ *(higher is better)*: fraction of agents that reached their goal by episode’s end.
+   *  **Success Rate** $SR$ *(higher is better)*: fraction of agents that reached their goal by episode’s end.
 
-   * **Flowtime** $FT$ *(lower is better)*: sum of each agent’s path length (measured in simulation time).
+   *  **Flowtime** $FT$ *(lower is better)*: sum of each agent’s path length (measured in simulation time).
 
-   * **Makespan** $MS$ *(lower is better)*: maximum over all agents’ path lengths (measured in simulation time).
+   *  **Makespan** $MS$ *(lower is better)*: maximum over all agents’ path lengths (measured in simulation time).
 
-   * **Coordination** $CO$ *(higher is better)*: The inverted number of collisions per agent.
+   *  **Coordination** $CO$ *(higher is better)*: The inverted number of collisions per agent.
 
 2. **Per‐Task Evaluation**
 
    (This is optional in CAMAR since each map can generate a very large amount of tasks)
 
-   * For each task $t$, algorithm $a$, and evaluation interval $i$:
+   *  For each task $t$, algorithm $a$, and evaluation interval $i$:
 
      1. Run $E$ episodes on task $t$ (using eval_keys).
      2. Compute the mean return $G_t^a$ over those $E$ episodes, along with a 95% confidence interval.
@@ -68,22 +68,19 @@ Below, we **(a)** slightly adopt most of the original default parameters, and **
 
    1. **Normalized Absolute Return.**
 
-      * Collect the best joint policy checkpoint found so far for each training run $r$.
-      * For each algorithm $a$, run $E$ episodes on *every* task $t\in T$ (across all maps specified by the protocol).
-      * Compute the normalized absolute return as the mean return of all evaluation episodes using the best joint policy found during training:
+      *  Collect the best joint policy checkpoint found so far for each training run $r$.
+      *  For each algorithm $a$, run $E$ episodes on *every* task $t\in T$ (across all maps specified by the protocol).
+      *  Compute the normalized absolute return as the mean return of all evaluation episodes using the best joint policy found during training:
 
       $$
-         G_{\mathrm{norm}}\bigl(a,r,t\bigr)
-         \;=\;
-         \frac{G_{t}^{a,r} \;-\;\min_{a',r',t'} G_{t'}^{a',r'}}{
-               \max_{a',r',t'} G_{t'}^{a',r'} \;-\; \min_{a',r',t'} G_{t'}^{a',r'}}
+         G_{norm} \left( a,r,t \right) = \frac{G_{t}^{a,r} - \min_{a',r',t'} G_{t'}^{a',r'}}{\max_{a',r',t'} G_{t'}^{a',r'} - \min_{a',r',t'} G_{t'}^{a',r'}}
       $$
-      * For each algorithm $a$, form an evaluation matrix $\{G_{t}^{a,r}\}$ with shape $(R,|T|)$.
+      *  For each algorithm $a$, form an evaluation matrix $\{G_{t}^{a,r}\}$ with shape $(R,|T|)$.
    2. **Aggregated Statistics.**
 
-      * Compute the Interquartile Mean (IQM) and Optimality Gap with 95% stratified bootstrap CIs.
-      * Compute probability of improvement and performance profiles.
-      * Optionally plot **Sample Efficiency Curves**: track IQM of the normalized return as a function of total timesteps with shaded areas indicating 95% CI.
+      *  Compute the Interquartile Mean (IQM) and Optimality Gap with 95% stratified bootstrap CIs.
+      *  Compute probability of improvement and performance profiles.
+      *  Optionally plot **Sample Efficiency Curves**: track IQM of the normalized return as a function of total timesteps with shaded areas indicating 95% CI.
 
 ---
 
@@ -110,7 +107,7 @@ Below, each sub‐section describes one "difficulty tier." In each case, we spec
 2. **Training**
 
    1. Fix a map class $m$ ∈ {`labmaze_grid`, `random_grid`}
-   2. Fix the number of agents $N \in \{ 8, 32 \}$
+   2. Fix the number of agents $N \in$ { $8$, $32$ }
    3. Fix obstacle parameters (`obstacle_density` or `extra_connection_probability`)
    4. Train on maps from `protocols/easy/` (already contains all necessary settings and can be used for the environment creation as is); in total, train on 12 different settings $(m, N, o_{params})$.
 
