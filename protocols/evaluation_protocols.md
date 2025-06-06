@@ -153,9 +153,9 @@ Below, each sub‐section describes one "difficulty tier." In each case, we spec
 
 4. **Aggregation**
 
-   1. Almost the same procedure as in [Section 3.1. Aggregation](easy_agg).
+   1. Almost the same procedure as in [Section 3.1. Aggregation](#easy_agg).
    2. Now for each map $m$ ∈ {`labmaze_grid`, `random_grid`} we aggargate statistics from total 12 models each trained on the separate map type, so each setting will be evaluated on 12 models. Both `random_grid` and `labmaze_grid` get $72K$ evaluation episodes each
-   3. Optionally extend the charts from [Section 3.1. Aggregation.3](easy_agg) to show performance on each $o_{params}$ separately. It can be useful because models trained without obstacles are now evaluated on maps with obstacles. *In CAMAR's default observation design, agents do not distinguish between other agents and obstacles, so if an agent learns to avoid collisions with other agents, it may also learn to avoid obstacles - and we test that*
+   3. Optionally extend the charts from [Section 3.1. Aggregation.3](#easy_agg) to show performance on each $o_{params}$ separately. It can be useful because models trained without obstacles are now evaluated on maps with obstacles. *In CAMAR's default observation design, agents do not distinguish between other agents and obstacles, so if an agent learns to avoid collisions with other agents, it may also learn to avoid obstacles - and we test that*
 
 ---
 
