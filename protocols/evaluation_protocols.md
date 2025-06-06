@@ -72,9 +72,8 @@ Below, we **(a)** slightly adopt most of the original default parameters, and **
       *  For each algorithm $a$, run $E$ episodes on *every* task $t\in T$ (across all maps specified by the protocol).
       *  Compute the normalized absolute return as the mean return of all evaluation episodes using the best joint policy found during training:
 
-      $$
-         G_{norm} \left( a,r,t \right) = \frac{G_{t}^{a,r} - \min_{a',r',t'} G_{t'}^{a',r'}}{\max_{a',r',t'} G_{t'}^{a',r'} - \min_{a',r',t'} G_{t'}^{a',r'}}
-      $$
+      $G_{norm} \left( a,r,t \right) = \frac{G_{t}^{a,r} - \min_{a',r',t'} G_{t'}^{a',r'}}{\max_{a',r',t'} G_{t'}^{a',r'} - \min_{a',r',t'} G_{t'}^{a',r'}}$
+      
       *  For each algorithm $a$, form an evaluation matrix $\{G_{t}^{a,r}\}$ with shape $(R,|T|)$.
    2. **Aggregated Statistics.**
 
