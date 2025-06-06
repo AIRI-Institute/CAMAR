@@ -146,7 +146,9 @@ class TestReadmeExamples:
             assert isinstance(env3.map_generator, labmaze_grid)
             assert env3.num_agents == 3
 
-            env3_str = camar_v0("labmaze_grid", num_maps=2, num_agents=3, height=7, width=7)
+            env3_str = camar_v0(
+                "labmaze_grid", num_maps=2, num_agents=3, height=7, width=7
+            )
 
             assert isinstance(env3_str.map_generator, labmaze_grid)
             assert env3_str.num_agents == 3

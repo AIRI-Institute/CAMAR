@@ -1,11 +1,11 @@
 import jax
 import jax.numpy as jnp
 import pytest
+from dummy_map import dummy_map
 
 from camar import camar_v0
 from camar.environment import Camar
 from camar.maps import string_grid
-from dummy_map import dummy_map
 
 
 @pytest.fixture

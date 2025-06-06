@@ -29,7 +29,7 @@ MAP_STR_SQUARE_1 = """
 .#.#.
 .###.
 .....
-""" # 5x5
+"""  # 5x5
 
 MAP_STR_SQUARE_2 = """
 .#.#.
@@ -37,7 +37,7 @@ MAP_STR_SQUARE_2 = """
 .#.#.
 #.#.#
 .#.#.
-""" # 5x5
+"""  # 5x5
 
 MAP_STR_SQUARE_BATCH = [MAP_STR_SQUARE_1, MAP_STR_SQUARE_2]
 
@@ -52,7 +52,9 @@ class TestBatchedStringGrid:
 
     def test_map_reset(self):
         num_agents = 2
-        map_gen = batched_string_grid(map_str_batch=MAP_STR_BATCH, num_agents=num_agents)
+        map_gen = batched_string_grid(
+            map_str_batch=MAP_STR_BATCH, num_agents=num_agents
+        )
         key = jax.random.key(0)
 
         keys_g, landmark_pos, agent_pos, goal_pos = map_gen.reset(key)
@@ -67,7 +69,7 @@ class TestBatchedStringGrid:
 
     def test_map_creation_with_specific_agent_goal_pos(self):
         agent_idx_batch = [
-            jnp.array([[2, 2]]), # For MAP_STR_SQUARE_1
+            jnp.array([[2, 2]]),  # For MAP_STR_SQUARE_1
             jnp.array([[0, 0]]),  # For MAP_STR_SQUARE_2
         ]
         goal_idx_batch = [
@@ -81,7 +83,7 @@ class TestBatchedStringGrid:
             agent_idx_batch=agent_idx_batch,
             goal_idx_batch=goal_idx_batch,
             add_border=False,
-            remove_border=False
+            remove_border=False,
         )
         key = jax.random.key(1)
         _, _, agent_pos, goal_pos = map_gen.reset(key)
