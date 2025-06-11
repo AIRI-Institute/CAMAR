@@ -282,7 +282,6 @@ class Camar:
         noise = jax.random.normal(key, shape=u.shape) * self.u_noise
         return u + noise
 
-    @partial(jax.vmap, in_axes=[None, 0, 0, 0])
     def _integrate_state(self, force: ArrayLike, pos: ArrayLike, vel:ArrayLike) -> Tuple[Array, Array]:
         """integrate physical state"""
 
@@ -291,10 +290,10 @@ class Camar:
 
         vel += (force / self.mass) * self.dt
 
-        speed = jnp.linalg.norm(vel, ord=2)
+        speed = jnp.linalg.norm(vel, axis=-1, keepdims=True)
         over_max = vel / speed * self.max_speed
 
-        vel = jax.lax.select((speed > self.max_speed) & (self.max_speed >= 0), over_max, vel)
+        vel = jnp.where((speed > self.max_speed) & (self.max_speed >= 0), over_max, vel)
 
         return pos, vel
 
