@@ -1,0 +1,10 @@
+map_generator: "random_grid"
+max_steps: 1000
+num_rows: 20
+num_cols: 20
+obstacle_density: 0.15
+num_agents: 32
+grain_factor: 3
+
+frameskip: 15
+max_obs: 3 # can be adjusted

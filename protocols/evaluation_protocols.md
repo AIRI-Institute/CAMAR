@@ -5,15 +5,15 @@ We adapt ["A Standardised Performance Evaluation Protocol for Cooperative MARL"]
 1. **Number of agents**
 2. **Map structure/difficulty**
 
-Below, we **(a)** slightly adopt most of the original default parameters, and **(b)** introduce three "difficulty tiers" of evaluation protocols — **[Easy](#31-protocol-easy--generalisation-to-unseen-task-seeds), [Medium](#32-protocol-medium--generalisation-to-new-maps-of-similar-difficulty), [Hard](#33-protocol-hard--generalisation-to-unseen-map-families--number-of-agents)** — each targeting a different notion of generalisation.
+Below, we **(a)** adopt most of the original default parameters, and **(b)** introduce three "difficulty tiers" of evaluation protocols — **[Easy](#31-protocol-easy--generalisation-to-unseen-task-seeds), [Medium](#32-protocol-medium--generalisation-to-new-maps-of-similar-difficulty), [Hard](#33-protocol-hard--generalisation-to-unseen-map-families--number-of-agents)** — each targeting a different notion of generalisation.
 
 Here is a **short overview** of all three protocols. For full details, see the sections below.
 
 |                                        | **Easy**                                                                                                                                                                        | **Medium**                                                                                                                                                                                                                                     | **Hard**                                                                                                                                                               |
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Why**                                | Test that the method can solve the problem without testing generalisation.                                                                                                      | Test that the method can solve the problem *and* generalise across similar map types.                                                                                                                                                          | Test that the method can generalise to near-real-world settings.                                                                                                       |
-| **How to train & evaluate**            | **Train on** `random_grid_h20_w20_a8_o0` (see [`protocols/easy-medium/`](./easy-medium/))<br>**Evaluate on** the same `random_grid_h20_w20_a8_o0`<br>**Repeat** for all 12 maps | **Train on** `random_grid_h20_w20_a8_o0` (see [`protocols/easy-medium/`](./easy-medium/))<br>**Evaluate on** **all 6** maps with the same number of agents (do not test generalization on the number of agents)<br> **Repeat** for all 12 maps | **Train on** any map excluding MovingAI<br>**Evaluate on** MovingAI street collection ([`protocols/hard/eval/street/`](./hard/eval/street/)) with varying agent counts |
-| **Total number of models/evaluations** | 12 trained models, 12 evaluations (each 1K episodes)                                                                                                                           | 12 trained models, 72 evaluations (each 1K episodes)                                                                                                                                                                                          | 1 trained model, TODO evaluations (each 1K episodes).                                                                                                                |
+| **Why**                                | Test that the method can solve the problem without testing generalisation.                                                                                                      | Test that the method can solve the problem *and* generalise across similar map types including varying number of agents.                                                                                                                                                          | Test that the method can generalise to near-real-world settings.                                                                                                       |
+| **How to train & evaluate**            | **Train on** `random_grid_h20_w20_a8_o0` (see [`protocols/easy-medium/`](./easy-medium/))<br>**Evaluate on** the same `random_grid_h20_w20_a8_o0`<br>**Repeat** for all 12 maps | **Train on** `random_grid_h20_w20_a8_o0` (see [`protocols/easy-medium/`](./easy-medium/))<br>**Evaluate on** **all 12** maps (not only the number of agents used for training)<br> **Repeat** for all 12 maps | **Train on** any map excluding MovingAI<br>**Evaluate on** MovingAI street collection ([`protocols/hard/eval/street/`](./hard/eval/street/)) with varying agent counts |
+| **Total number of models/evaluations** | 12 trained models, 12 evaluations (each 1K episodes)                                                                                                                           | 12 trained models, 144 evaluations (each 1K episodes)                                                                                                                                                                                          | 1 trained model, TODO evaluations (each 1K episodes).                                                                                                                |
 | **What to report**                     | `Final scores` - mandatory<br>`sample-efficiency curves` - strongly recommended                                                                                                 | `Final scores` - mandatory<br>`sample-efficiency curves` - recommended                                                                                                                                                                         | `Final scores` - mandatory<br>`metrics vs num_agents` - mandatory<br>`sample-efficiency curves` - if resources allow                                                   |
 
 1. Include comparisons with other methods on the same charts/tables.
@@ -32,12 +32,11 @@ Here is a **short overview** of all three protocols. For full details, see the s
 1. **Training Timesteps $T$.**
 
    *  Off‐policy methods: $T = 2M$ timesteps.
-   *  On‐policy methods: $T = 10M$ timesteps.
+   *  On‐policy methods: $T = 20M$ timesteps.
 
 2. **Independent Training Runs $R$.**
 
-   *  $R = 10$ independent seeds/runs.
-   *  *(If resources are tight, consider* $R \ge 3$*; ideally* $R=10$ *for robust statistics.)*
+   *  $R = 3$ independent seeds/runs.
 
 3. **Evaluation Episodes per Interval $E$.**
 
@@ -140,7 +139,7 @@ Below, each sub‐section describes one "difficulty tier." In each case, we spec
 #### 3.2 Protocol "Medium" – Generalisation to New Maps of Similar Difficulty
 
 1. **Objective**
-   Evaluate how well an agent generalise to *both seen and unseen maps*, *aggregated across multiple agent‐counts* **(do not evaluate how models scale to more agents)**.
+   Evaluate how well an agent generalise to *both seen and unseen maps*.
 
 2. **Training**
 
@@ -148,14 +147,13 @@ Below, each sub‐section describes one "difficulty tier." In each case, we spec
 
 3. **Testing**
 
-   1. Each of the models trained with $N=8$ agents test on all other maps with the same $N=8$: $(m, 8, o_{params})$. Evaluate on 6 different settings (regardless if whether $o_{params}$ was seen during training).
-   2. Repeat for the model trained with $N=32$ agents.
+   1. Each of the models test on all settings in [`protocols/easy-medium/`](./easy-medium/) regardless if whether $o_{params}$ or number of agents were seen during training.
 
 4. **Aggregation**
 
    1. Almost the same procedure as in [Section 3.1. Aggregation](#easy_agg).
-   2. Now for each map $m$ ∈ {`labmaze_grid`, `random_grid`} we aggargate statistics from total 12 models each trained on the separate map type, so each setting will be evaluated on 12 models. Both `random_grid` and `labmaze_grid` get $72K$ evaluation episodes each
-   3. Optionally extend the charts from [Section 3.1. Aggregation.3](#easy_agg) to show performance on each $o_{params}$ separately. It can be useful because models trained without obstacles are now evaluated on maps with obstacles. *In CAMAR's default observation design, agents do not distinguish between other agents and obstacles, so if an agent learns to avoid collisions with other agents, it may also learn to avoid obstacles - and we test that*
+   2. Now for each map $m$ ∈ {`labmaze_grid`, `random_grid`} we aggargate statistics from total 12 models each trained on the separate map type, so each setting will be evaluated on 12 models. Both `random_grid` and `labmaze_grid` get $144K$ evaluation episodes each
+   3. Optionally extend the charts from [Section 3.1. Aggregation.3](#easy_agg) to show performance on each $o_{params}$ or number of agents separately. It can be useful because models trained without obstacles are now evaluated on maps with obstacles. *In CAMAR's default observation design, agents do not distinguish between other agents and obstacles, so if an agent learns to avoid collisions with other agents, it may also learn to avoid obstacles - and we test that*
 
 ---
 

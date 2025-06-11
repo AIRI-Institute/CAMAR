@@ -1,0 +1,13 @@
+map_generator: "labmaze_grid"
+max_steps: 1000
+num_maps: 10
+height: 21
+width: 21
+room_min_size: 4
+room_max_size: 9
+extra_connection_probability: 0.65
+num_agents: 32
+max_free_pos: 50
+
+frameskip: 15
+max_obs: 3 # can be adjusted
