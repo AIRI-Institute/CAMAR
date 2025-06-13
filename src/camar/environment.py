@@ -96,9 +96,8 @@ class Camar:
     def num_entities(self) -> int:
         return self.num_agents + self.num_landmarks
 
-    @partial(jax.jit, static_argnums=[0])
     def step(self, key: ArrayLike, state: State, actions: ArrayLike) -> tuple[Array, State, Array, Array, dict]:
-        # actions.shape = (num_agents, 2)
+        # actions = (num_agents, 2)
         u = self.accel * actions
 
         key, key_w = jax.random.split(key)
@@ -152,7 +151,6 @@ class Camar:
 
         return obs, state, reward, done, {}
 
-    @partial(jax.jit, static_argnums=[0])
     def reset(self, key: ArrayLike) -> tuple[Array, State]:
         """Initialise with random positions"""
 
@@ -184,7 +182,6 @@ class Camar:
     def get_dist(self, a_pos: ArrayLike, p_pos: ArrayLike) -> Array:
         return jnp.linalg.norm(a_pos - p_pos, axis=-1)
 
-    @partial(jax.jit, static_argnums=[0])
     def get_obs(self, state: State) -> Array:
         agent_pos = state.agent_pos
         goal_pos = state.goal_pos
@@ -237,19 +234,19 @@ class Camar:
         r = 0.5 * on_goal.astype(jnp.float32) - 1.0 * is_collision.astype(jnp.float32) + self.pos_shaping_factor * (old_goal_dist - goal_dist)
         return r.reshape(-1, 1)
 
-    def _world_step(self, key: ArrayLike, state: State, u: ArrayLike, is_collision: ArrayLike) -> tuple[Array, Array]:
-        # apply agent physical controls
-        agent_force = self._apply_action_force(key, u)
+    def _world_step(self, key: ArrayLike, state: State, u: ArrayLike, is_collision: ArrayLike) -> tuple[State, Array]:
 
-        # apply environment forces
+        agent_force = self._add_noise(key, u)
+
+        # apply collision forces
         agent_force, is_collision = self._apply_environment_force(agent_force, is_collision, state)
 
-        # integrate physical state
+        # integrate state
         state = self._integrate_state(agent_force, state)
 
         return state, is_collision
 
-    def _apply_action_force(self, key: ArrayLike, u: ArrayLike) -> Array:
+    def _add_noise(self, key: ArrayLike, u: ArrayLike) -> Array:
         noise = jax.random.normal(key, shape=u.shape) * self.u_noise
         return u + noise
 
@@ -275,9 +272,9 @@ class Camar:
 
         return state
 
-    def _apply_environment_force(self, agent_force: ArrayLike, is_collision: ArrayLike, state: State) -> Array:
+    def _apply_environment_force(self, agent_force: ArrayLike, is_collision: ArrayLike, state: State) -> tuple[Array, Array]:
 
-        # agent - agent
+        # agent - agent collisions
         agent_idx_i, agent_idx_j = jnp.triu_indices(self.num_agents, k=1)
         agent_forces, is_collision_agents = self._get_collision_force(state.agent_pos[agent_idx_i], state.agent_pos[agent_idx_j], self.agent_rad + self.agent_rad) # (num_agents * (num_agents - 1) / 2, 2)
 
@@ -287,7 +284,7 @@ class Camar:
         agent_force = agent_force.at[agent_idx_i].add(agent_forces)
         agent_force = agent_force.at[agent_idx_j].add(- agent_forces)
 
-        # agent - landmark
+        # agent - landmark collisions
         agent_idx = jnp.repeat(jnp.arange(self.num_agents), self.num_landmarks)
         landmark_idx = jnp.tile(jnp.arange(self.num_landmarks), self.num_agents)
         landmark_forces, is_collision_landmarks = self._get_collision_force(state.agent_pos[agent_idx], state.landmark_pos[landmark_idx], self.agent_rad + self.landmark_rad) # (num_agents * num_landmarks, 2)
@@ -299,7 +296,7 @@ class Camar:
         return agent_force, is_collision
 
     @partial(jax.vmap, in_axes=[None, 0, 0, None])
-    def _get_collision_force(self, pos_a: ArrayLike, pos_b: ArrayLike, min_dist: float) -> Array:
+    def _get_collision_force(self, pos_a: ArrayLike, pos_b: ArrayLike, min_dist: float) -> tuple[Array, Array]:
         delta_pos = pos_a - pos_b
 
         dist = jnp.linalg.norm(delta_pos, axis=-1)

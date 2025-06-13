@@ -1,5 +1,3 @@
-from typing import Tuple
-
 from jax import Array
 from jax.typing import ArrayLike
 
@@ -17,7 +15,7 @@ class Box:
         self,
         low: float,
         high: float,
-        shape: Tuple[int],
+        shape: tuple | int,
         dtype: jnp.dtype = jnp.float32,
     ):
         self.low = low

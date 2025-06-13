@@ -1,5 +1,4 @@
-from functools import partial
-from typing import Optional, Tuple
+from typing import Optional, Callable
 
 import jax
 import jax.numpy as jnp
@@ -26,8 +25,8 @@ class string_grid(base_map):
         obstacle_size: float = 0.1,
         agent_size: float = 0.04,
         max_free_pos: Optional[int] = None,
-        map_array_preprocess: callable = lambda map_array: map_array,
-        free_pos_array_preprocess: callable = lambda free_pos_array: free_pos_array,
+        map_array_preprocess: Callable[[ArrayLike], Array] = lambda map_array: map_array,
+        free_pos_array_preprocess: Callable[[ArrayLike], Array] = lambda free_pos_array: free_pos_array,
     ) -> base_map:
         if agent_idx is not None:
             num_agents = agent_idx.shape[0]
@@ -107,7 +106,7 @@ class string_grid(base_map):
             )  # 1 key = 1 goal
         else:
             goal_pos = jax.random.choice(
-                jax.random.key(1), goal_pos, shape=(self.num_agents,), replace=False
+                jax.random.key(1), free_pos, shape=(self.num_agents,), replace=False
             )
             self.generate_goals = lambda key: goal_pos
 
@@ -124,17 +123,16 @@ class string_grid(base_map):
     @property
     def goal_rad(self):
         return self.agent_rad / 2.5
-    
+
     @property
     def height(self):
         return self._height
-    
+
     @property
     def width(self):
         return self._width
 
-    @partial(jax.jit, static_argnums=[0])
-    def reset(self, key: ArrayLike) -> Tuple[Array, Array, Array, Array]:
+    def reset(self, key: ArrayLike) -> tuple[Array, Array, Array, Array]:
         key_a, key_g = jax.random.split(key, 2)
 
         # generate agents
@@ -150,8 +148,7 @@ class string_grid(base_map):
             goal_pos,
         )  # return key_g because of lifelong
 
-    @partial(jax.jit, static_argnums=[0])
-    def reset_lifelong(self, key) -> Tuple[Array, Array, Array, Array]:
+    def reset_lifelong(self, key) -> tuple[Array, Array, Array, Array]:
         key_a, key_g = jax.random.split(key, 2)
 
         # generate agents
@@ -167,7 +164,7 @@ class string_grid(base_map):
 
     def update_goals(
         self, keys: ArrayLike, goal_pos: ArrayLike, to_update: ArrayLike
-    ) -> Tuple[Array, Array]:
+    ) -> tuple[Array, Array]:
         new_keys = jax.vmap(jax.random.split, in_axes=[0, None])(keys, 1)[:, 0]
         new_keys = jnp.where(to_update, new_keys, keys)
 

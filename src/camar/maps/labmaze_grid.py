@@ -1,10 +1,12 @@
+from typing import Optional
+
 from .base_map import base_map
 from .batched_string_grid import batched_string_grid
 
 
 def generate_labmaze_maps(num_maps, height, width, max_rooms, seed, **labmaze_kwargs):
     from labmaze import RandomMaze
-    
+
     maps = []
     free_pos = []
     for i in range(num_maps):
@@ -31,7 +33,7 @@ class labmaze_grid(batched_string_grid):
         num_agents: int = 10,
         obstacle_size: float = 0.2,
         agent_size: float = 0.1,
-        max_free_pos: int = None,
+        max_free_pos: Optional[int] = None,
         **labmaze_kwargs,
     ) -> base_map:
         map_str_batch, free_pos_str_batch = generate_labmaze_maps(

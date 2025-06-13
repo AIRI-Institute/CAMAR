@@ -1,6 +1,5 @@
 import jax
 import jax.numpy as jnp
-from functools import partial
 
 from .const import PREGEN_DEVICE
 
@@ -46,7 +45,8 @@ def parse_map_array(map_array, obstacle_size, free_pos_array=None):
     num_rows, num_cols = map_array.shape
 
     map_idx_rows, map_idx_cols = jnp.meshgrid(
-        jnp.arange(num_cols, device=PREGEN_DEVICE), jnp.arange(num_rows, device=PREGEN_DEVICE)
+        jnp.arange(num_cols, device=PREGEN_DEVICE),
+        jnp.arange(num_rows, device=PREGEN_DEVICE),
     )
 
     height = num_rows * obstacle_size
@@ -102,52 +102,66 @@ def check_pos(map_array, pos):
 def get_border_landmarks(num_rows, num_cols, half_width, half_height, grain_factor):
     top_wall = jnp.stack(
         (
-            jnp.linspace(- half_width, # start
-                            half_width, # end
-                            num_rows * (grain_factor - 1), # num points
-                            endpoint=False),
-            jnp.full((num_rows * (grain_factor - 1), ), # num points
-                        half_height), # y coord of the top wall
+            jnp.linspace(
+                -half_width,  # start
+                half_width,  # end
+                num_rows * (grain_factor - 1),  # num points
+                endpoint=False,
+            ),
+            jnp.full(
+                (num_rows * (grain_factor - 1),),  # num points
+                half_height,
+            ),  # y coord of the top wall
         ),
         axis=-1,
     )
     right_wall = jnp.stack(
         (
-            jnp.full((num_cols * (grain_factor - 1), ), # num points
-                        half_width), # x coord of the right wall
-            jnp.linspace(half_height, # start
-                            - half_height, # end
-                            num_cols * (grain_factor - 1), # num points
-                            endpoint=False),
+            jnp.full(
+                (num_cols * (grain_factor - 1),),  # num points
+                half_width,
+            ),  # x coord of the right wall
+            jnp.linspace(
+                half_height,  # start
+                -half_height,  # end
+                num_cols * (grain_factor - 1),  # num points
+                endpoint=False,
+            ),
         ),
         axis=-1,
     )
     bottom_wall = jnp.stack(
         (
-            jnp.linspace(half_width, # start
-                            - half_width, # end
-                            num_rows * (grain_factor - 1), # num points
-                            endpoint=False),
-            jnp.full((num_rows * (grain_factor - 1), ), # num points
-                        - half_height), # y coord of the bottom wall
+            jnp.linspace(
+                half_width,  # start
+                -half_width,  # end
+                num_rows * (grain_factor - 1),  # num points
+                endpoint=False,
+            ),
+            jnp.full(
+                (num_rows * (grain_factor - 1),),  # num points
+                -half_height,
+            ),  # y coord of the bottom wall
         ),
         axis=-1,
     )
     left_wall = jnp.stack(
         (
-            jnp.full((num_cols * (grain_factor - 1), ), # num points
-                        - half_width), # x coord of the left wall
-            jnp.linspace(- half_height, # start
-                            half_height, # end
-                            num_cols * (grain_factor - 1), # num points
-                            endpoint=False),
+            jnp.full(
+                (num_cols * (grain_factor - 1),),  # num points
+                -half_width,
+            ),  # x coord of the left wall
+            jnp.linspace(
+                -half_height,  # start
+                half_height,  # end
+                num_cols * (grain_factor - 1),  # num points
+                endpoint=False,
+            ),
         ),
         axis=-1,
     )
-    return jnp.concatenate([top_wall,
-                            right_wall,
-                            left_wall,
-                            bottom_wall])
+    return jnp.concatenate([top_wall, right_wall, left_wall, bottom_wall])
+
 
 # movingai
 def delete_movingai_header(map_str):
@@ -219,21 +233,21 @@ def detect_edges(img, low_thr, mode="same"):
 
 
 def fade(t):
-    return 6*t**5 - 15*t**4 + 10*t**3
+    return 6 * t**5 - 15 * t**4 + 10 * t**3
 
 
 def lerp(a, b, t):
     return a + t * (b - a)
 
 
-@partial(jax.jit, static_argnames=("grid_width", "grid_height", ))
 def generate_gradients(key, grid_width, grid_height):
-    angles = jax.random.uniform(key, shape=(grid_width + 1, grid_height + 1), minval=0.0, maxval=2.0*jnp.pi)
+    angles = jax.random.uniform(
+        key, shape=(grid_width + 1, grid_height + 1), minval=0.0, maxval=2.0 * jnp.pi
+    )
     gradients = jnp.dstack((jnp.cos(angles), jnp.sin(angles)))
     return gradients
 
 
-@partial(jax.jit, static_argnames=("width", "height", "grid_width", "grid_height"))
 def perlin_noise_vectorized(key, width, height, grid_width, grid_height):
     gradients = generate_gradients(key, grid_width, grid_height)
 

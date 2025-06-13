@@ -1,5 +1,4 @@
 import jax
-import jax.numpy as jnp
 
 from camar import camar_v0
 from camar.render import SVG_Visualizer

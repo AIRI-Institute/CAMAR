@@ -58,15 +58,17 @@ key, key_r, key_a, key_s = jax.random.split(key, 4)
 
 # Create an environment with a random_grid map by default
 env = camar_v0()
+reset_fn = jax.jit(env.reset)
+step_fn = jax.jit(env.step)
 
 # Reset the environment
-obs, state = env.reset(key_r)
+obs, state = reset_fn(key_r)
 
 # Sample random actions
 actions = env.action_spaces.sample(key_a)
 
 # Step the environment
-obs, state, reward, done, info = env.step(key_s, state, actions)
+obs, state, reward, done, info = step_fn(key_s, state, actions)
 ```
 
 You can use it in jax vectorized manner:

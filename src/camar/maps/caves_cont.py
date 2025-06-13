@@ -1,6 +1,3 @@
-from functools import partial
-from typing import Tuple
-
 import jax
 import jax.numpy as jnp
 from jax import Array
@@ -18,7 +15,7 @@ class caves_cont(base_map):
         scale: int = 14,
         landmark_low_ratio: float = 0.55,
         landmark_high_ratio: float = 0.72,
-        free_ratio: int = 0.20,
+        free_ratio: float = 0.20,
         add_borders: bool = True,
         num_agents: int = 16,
         obstacle_size: float = 0.1,
@@ -46,10 +43,15 @@ class caves_cont(base_map):
 
         self.num_agents = num_agents
 
-
         if add_borders:
             grain_factor = 2
-            self.border_landmarks = get_border_landmarks(num_rows, num_cols, half_width=self.width / 2, half_height=self.height / 2, grain_factor=grain_factor)
+            self.border_landmarks = get_border_landmarks(
+                num_rows,
+                num_cols,
+                half_width=self.width / 2,
+                half_height=self.height / 2,
+                grain_factor=grain_factor,
+            )
             self.num_landmarks += (num_rows + num_cols) * 2 * (grain_factor - 1)
         else:
             self.border_landmarks = jnp.empty(shape=(0, 2))
@@ -65,17 +67,16 @@ class caves_cont(base_map):
     @property
     def goal_rad(self):
         return self.agent_rad / 2.5
-    
+
     @property
     def height(self):
         return self.num_cols * self.obstacle_size
-    
+
     @property
     def width(self):
         return self.num_rows * self.obstacle_size
 
-    @partial(jax.jit, static_argnums=[0])
-    def reset(self, key: ArrayLike) -> Tuple[Array, Array, Array, Array]:
+    def reset(self, key: ArrayLike) -> tuple[Array, Array, Array, Array]:
         key_o, key_a, key_g = jax.random.split(key, 3)
 
         # generate perlin noise
@@ -93,7 +94,9 @@ class caves_cont(base_map):
             : self.landmark_ranks[0]
         ]
         landmark_idx = jnp.setdiff1d(
-            landmark_idx_high, landmark_idx_low, size=self.landmark_ranks[1] - self.landmark_ranks[0]
+            landmark_idx_high,
+            landmark_idx_low,
+            size=self.landmark_ranks[1] - self.landmark_ranks[0],
         )
         landmark_idx_x, landmark_idx_y = jnp.divmod(landmark_idx, self.num_cols)
 

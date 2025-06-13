@@ -132,16 +132,17 @@ class CamarWrapper(_EnvWrapper):
 
     #     key = jax.random.PRNGKey(0)
     #     keys = jax.random.split(key, self.batch_size.numel())
-    #     state, obs, done = self._vmap_jit_env_reset(jax.numpy.stack(keys))
+    #     state, obs, done = self._jit_vmap_env_reset(jax.numpy.stack(keys))
     #     # state = _tree_reshape(state, self.batch_size)
     #     return state
 
     def _init_env(self):
         jax = self.jax
         self._key = None
-        self._vmap_jit_env_reset = jax.jit(jax.vmap(self._env.reset))
-        self._vmap_jit_env_step = jax.jit(jax.vmap(self._env.step))
-        self._vmap_jit_env_get_obs = jax.jit(jax.vmap(self._env.get_obs))
+        self._jit_vmap_env_reset = jax.jit(jax.vmap(self._env.reset))
+        self._jit_vmap_env_step = jax.jit(jax.vmap(self._env.step))
+        self._jit_vmap_env_get_obs = jax.jit(jax.vmap(self._env.get_obs))
+
         self._jit_partial_reset = jax.jit(self._partial_reset)
         self._state = None
         # self._state_example = self._make_state_example()
@@ -153,9 +154,9 @@ class CamarWrapper(_EnvWrapper):
         self._key = jax.random.PRNGKey(seed)
 
     def _partial_reset(self, keys, state, envs_to_reset):
-        obs_r, state_r = self._vmap_jit_env_reset(keys)
+        obs_r, state_r = self._jit_vmap_env_reset(keys)
 
-        obs_old = self._vmap_jit_env_get_obs(state)
+        obs_old = self._jit_vmap_env_get_obs(state)
 
         state_old = state
 
@@ -171,7 +172,6 @@ class CamarWrapper(_EnvWrapper):
 
     def _reset(self, tensordict: TensorDictBase = None, **kwargs) -> TensorDictBase:
         jax = self.jax
-        jnp = jax.numpy
 
         # generate random keys
         self._key, *keys = jax.random.split(self._key, 1 + self.numel())
@@ -183,14 +183,14 @@ class CamarWrapper(_EnvWrapper):
 
             if envs_to_reset.all():
                 # reset all
-                obs, self._state = self._vmap_jit_env_reset(keys)
+                obs, self._state = self._jit_vmap_env_reset(keys)
             else:
                 envs_to_reset = _tensor_to_ndarray(envs_to_reset)
 
                 obs, self._state = self._jit_partial_reset(keys, self._state, envs_to_reset)
         else:
             # call env reset with jit and vmap
-            obs, self._state = self._vmap_jit_env_reset(keys)
+            obs, self._state = self._jit_vmap_env_reset(keys)
 
         tensordict_agents = TensorDict(
             source={
@@ -229,7 +229,7 @@ class CamarWrapper(_EnvWrapper):
         # call env step with jit and vmap
         self._key, *keys_s = jax.random.split(self._key, 1 + self.numel())
 
-        obs, self._state, reward, done, info = self._vmap_jit_env_step(
+        obs, self._state, reward, done, info = self._jit_vmap_env_step(
             jax.numpy.stack(keys_s), self._state, action
         )
 

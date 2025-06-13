@@ -1,5 +1,4 @@
-from functools import partial
-from typing import List, Optional, Tuple
+from typing import List, Optional, Callable
 
 import jax
 import jax.numpy as jnp
@@ -33,8 +32,8 @@ class batched_string_grid(base_map):
         obstacle_size: float = 0.1,
         agent_size: float = 0.06,
         max_free_pos: Optional[int] = None,
-        map_array_preprocess: callable = lambda map_array: map_array,
-        free_pos_array_preprocess: callable = lambda free_pos_array: free_pos_array,
+        map_array_preprocess: Callable[[ArrayLike], Array] = lambda map_array: map_array,
+        free_pos_array_preprocess: Callable[[ArrayLike], Array] = lambda free_pos_array: free_pos_array,
     ) -> base_map:
         self.batch_size = len(map_str_batch)
         if agent_idx_batch is not None:
@@ -96,7 +95,8 @@ class batched_string_grid(base_map):
 
             # check free_pos_array_batch
             free_pos_array_checks = map(
-                lambda map_array, free_pos_array: map_array.shape == free_pos_array.shape,
+                lambda map_array, free_pos_array: map_array.shape
+                == free_pos_array.shape,
                 map_array_batch,
                 free_pos_array_batch,
             )
@@ -214,7 +214,6 @@ class batched_string_grid(base_map):
 
         elif random_agents:
 
-            @jax.jit
             def generate_agents(key_batch, key_a):
                 free_pos = jax.random.choice(key_batch, free_pos_batch)
                 agent_pos = jax.random.choice(
@@ -250,7 +249,6 @@ class batched_string_grid(base_map):
 
         elif random_goals:
 
-            @jax.jit
             def generate_goals(key_batch, key_g):
                 free_pos = jax.random.choice(key_batch, free_pos_batch)
                 goal_pos = jax.random.choice(
@@ -283,17 +281,16 @@ class batched_string_grid(base_map):
     @property
     def goal_rad(self):
         return self.agent_rad / 2.5
-    
+
     @property
     def height(self):
         return self._height
-    
+
     @property
     def width(self):
         return self._width
 
-    @partial(jax.jit, static_argnums=[0])
-    def reset(self, key: ArrayLike) -> Tuple[Array, Array, Array, Array]:
+    def reset(self, key: ArrayLike) -> tuple[Array, Array, Array, Array]:
         key_batch, key = jax.random.split(key, 2)
 
         key_a, key_g = jax.random.split(key, 2)

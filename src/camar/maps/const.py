@@ -1,6 +1,5 @@
 import jax
 
-
 ENV_DEVICE = jax.devices(jax.default_backend())[0]
 
 if jax.default_backend() != "cpu":

@@ -12,15 +12,18 @@ class TestReadmeExamples:
 
         env = camar_v0()
         assert env is not None
+         
+        reset_fn = jax.jit(env.reset)
+        step_fn = jax.jit(env.step)
 
-        obs, state = env.reset(key_r)
+        obs, state = reset_fn(key_r)
         assert obs is not None
         assert state is not None
 
         actions = env.action_spaces.sample(key_a)
         assert actions.shape == (env.num_agents, env.action_size)
 
-        obs_next, state_next, reward, done, info = env.step(key_s, state, actions)
+        obs_next, state_next, reward, done, info = step_fn(key_s, state, actions)
         assert obs_next is not None
         assert state_next is not None
         assert reward is not None
