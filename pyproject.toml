@@ -72,4 +72,5 @@ dev = [
     "ipywidgets>=8.1.5",
     "pytest>=8.0.0",
     "pyyaml>=6.0.2",
+    "ruff>=0.11.13",
 ]
