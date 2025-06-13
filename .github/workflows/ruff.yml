@@ -6,11 +6,14 @@ on:
       - "src/**"
       - "tests/**"
     branches: [ "main" ]
+
   pull_request:
     paths:
       - "src/**"
       - "tests/**"
     branches: [ "main" ]
+
+  workflow_dispatch: # manually trigger the workflow
 
 jobs:
   ruff:
@@ -24,6 +27,6 @@ jobs:
       uses: astral-sh/ruff-action@v3
       with:
         args: "--version"
-    
+
     - name: Run ruff check
       run: ruff check --diff src/ tests/

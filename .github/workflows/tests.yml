@@ -8,12 +8,19 @@ on:
     paths:
       - "src/**"
       - "tests/**"
+      - "uv.lock"
+      - "pyproject.toml"
     branches: [ "main" ]
+
   pull_request:
     paths:
       - "src/**"
       - "tests/**"
+      - "uv.lock"
+      - "pyproject.toml"
     branches: [ "main" ]
+
+  workflow_dispatch: # manually trigger the workflow
 
 jobs:
   build:
