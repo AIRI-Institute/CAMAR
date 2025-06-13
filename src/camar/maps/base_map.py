@@ -4,8 +4,6 @@ from typing import Tuple
 from jax import Array
 from jax.typing import ArrayLike
 
-from matplotlib import pyplot as plt
-
 
 class base_map(ABC):
     @property
