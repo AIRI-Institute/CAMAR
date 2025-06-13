@@ -2,14 +2,14 @@ name: Run ruff check
 
 on:
   push:
-    paths:
-      - "src/**"
-      - "tests/**"
+    # paths:
+    #   - "src/**"
+    #   - "tests/**"
     branches: [ "main" ]
   pull_request:
-    paths:
-      - "src/**"
-      - "tests/**"
+    # paths:
+    #   - "src/**"
+    #   - "tests/**"
     branches: [ "main" ]
 
 jobs:
@@ -20,9 +20,10 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Run ruff check
+    - name: Install ruff
       uses: astral-sh/ruff-action@v3
       with:
-        src: >-
-          src/
-          tests/
+        args: "--version"
+    
+    - name: Run ruff check
+      run: ruff check src/ tests/
