@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Tuple, Optional
+from typing import Optional
 
 import jax
 import jax.numpy as jnp
@@ -64,7 +64,6 @@ class Camar:
 
         self.action_spaces = Box(low=-1.0, high=1.0, shape=(self.num_agents, self.action_size))
         self.observation_spaces = Box(-jnp.inf, jnp.inf, shape=(self.num_agents, self.observation_size))
-        self.action_decoder = self._decode_continuous_action
 
         # Environment parameters
         self.max_steps = max_steps
@@ -98,9 +97,9 @@ class Camar:
         return self.num_agents + self.num_landmarks
 
     @partial(jax.jit, static_argnums=[0])
-    def step(self, key: ArrayLike, state: State, actions: ArrayLike) -> Tuple[State, Array, Array, Array]:
+    def step(self, key: ArrayLike, state: State, actions: ArrayLike) -> tuple[Array, State, Array, Array, dict]:
         # actions.shape = (num_agents, 2)
-        u = self._decode_continuous_action(actions)
+        u = self.accel * actions
 
         key, key_w = jax.random.split(key)
 
@@ -110,12 +109,8 @@ class Camar:
             key, state, u, is_collision = scan_state
 
             key, _key = jax.random.split(key)
-            agent_pos, agent_vel, is_collision = self._world_step(_key, state, u, is_collision)
+            state, is_collision = self._world_step(_key, state, u, is_collision)
 
-            state = state.replace(
-                 agent_pos=agent_pos,
-                 agent_vel=agent_vel,
-            )
             return (key, state, u, is_collision), None
 
         is_collision = jnp.zeros(shape=(self.num_agents, ), dtype=jnp.int32)
@@ -158,7 +153,7 @@ class Camar:
         return obs, state, reward, done, {}
 
     @partial(jax.jit, static_argnums=[0])
-    def reset(self, key: ArrayLike) -> Tuple[State, Array, Array]:
+    def reset(self, key: ArrayLike) -> tuple[Array, State]:
         """Initialise with random positions"""
 
         goal_keys, landmark_pos, agent_pos, goal_pos = self.map_reset(key)
@@ -231,59 +226,37 @@ class Camar:
                                   ego_goal / goal_dist[:, None],
                                   ego_goal)
 
-        # ego_goal = - ego_goal
-
         obs = jnp.concatenate((ego_goal_norm[:, None, :], obs_norm), axis=1) # (num_agents, self.max_obs + goal, 2)
 
         return obs.reshape(self.num_agents, self.observation_size)
 
     def get_reward(self, is_collision: ArrayLike, goal_dist: ArrayLike, old_goal_dist: ArrayLike) -> Array:
 
-        # objects = jnp.vstack((agent_pos, landmark_pos))
-
-        # distances = jnp.linalg.norm(objects[None, :, :] - agent_pos[:, None, :], axis=-1)
-
-        # nearest_dists, nearest_ids = jax.lax.top_k(-distances, 2) # (num_agents, 2)
-
-        # remove zeros (nearest is the agent itself) -> (num_agents)
-        # nearest_ids = nearest_ids[:, 1]
-        # nearest_dists = -nearest_dists[:, 1]
-
         on_goal = goal_dist < self.goal_rad
 
-        # r = 10.0 * on_goal.astype(jnp.float32) - 0.001 * goal_dist - 1 * collision.astype(jnp.float32)
-        # r = 1.0 * on_goal.astype(jnp.float32) - 0.5 * collision.astype(jnp.float32) - 0.01 * jnp.log1p(goal_dist)
-        # r = 1.0 * on_goal.astype(jnp.float32) - 2.0 * collision.astype(jnp.float32) - 0.01 * jnp.log(goal_dist + 1e-8)
         r = 0.5 * on_goal.astype(jnp.float32) - 1.0 * is_collision.astype(jnp.float32) + self.pos_shaping_factor * (old_goal_dist - goal_dist)
-        # r = 1.0 * on_goal.astype(jnp.float32) - 0.5 * collision.astype(jnp.float32) + jnp.reciprocal(1.0 + goal_dist / 4)
-        # r = 1.0 * on_goal.astype(jnp.float32) - 0.5 * collision.astype(jnp.float32)
         return r.reshape(-1, 1)
 
-    def _decode_continuous_action(self, actions: ArrayLike) -> Array:
-        """actions (num_agents, 2)"""
-        return self.accel * actions
-
-    def _world_step(self, key: ArrayLike, state: State, u: ArrayLike, is_collision: ArrayLike) -> Tuple[Array, Array]:
+    def _world_step(self, key: ArrayLike, state: State, u: ArrayLike, is_collision: ArrayLike) -> tuple[Array, Array]:
         # apply agent physical controls
-        key_noise = jax.random.split(key, self.num_agents)
-        agent_force = self._apply_action_force(key_noise, u)
+        agent_force = self._apply_action_force(key, u)
 
         # apply environment forces
         agent_force, is_collision = self._apply_environment_force(agent_force, is_collision, state)
 
         # integrate physical state
-        agent_pos, agent_vel = self._integrate_state(agent_force, state.agent_pos, state.agent_vel)
+        state = self._integrate_state(agent_force, state)
 
-        return agent_pos, agent_vel, is_collision
+        return state, is_collision
 
-    # gather agent action forces
-    @partial(jax.vmap, in_axes=[None, 0, 0])
     def _apply_action_force(self, key: ArrayLike, u: ArrayLike) -> Array:
         noise = jax.random.normal(key, shape=u.shape) * self.u_noise
         return u + noise
 
-    def _integrate_state(self, force: ArrayLike, pos: ArrayLike, vel:ArrayLike) -> Tuple[Array, Array]:
+    def _integrate_state(self, force: ArrayLike, state: State) -> State:
         """integrate physical state"""
+        pos = state.agent_pos
+        vel = state.agent_vel
 
         pos += vel * self.dt
         vel = vel * (1 - self.damping)
@@ -295,7 +268,12 @@ class Camar:
 
         vel = jnp.where((speed > self.max_speed) & (self.max_speed >= 0), over_max, vel)
 
-        return pos, vel
+        state = state.replace(
+            agent_pos = pos,
+            agent_vel = vel,
+        )
+
+        return state
 
     def _apply_environment_force(self, agent_force: ArrayLike, is_collision: ArrayLike, state: State) -> Array:
 
