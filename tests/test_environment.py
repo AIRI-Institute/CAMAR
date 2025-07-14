@@ -4,6 +4,7 @@ import jax.numpy as jnp
 from camar import camar_v0
 from camar.environment import Camar
 from camar.maps import random_grid, string_grid
+from camar.dynamics import HolonomicDynamic, DiffDriveDynamic
 
 
 class TestEnvironment:
@@ -24,7 +25,7 @@ class TestEnvironment:
         assert obs is not None
         assert state is not None
         assert obs.shape == (env.num_agents, env.observation_size)
-        assert state.agent_pos.shape == (env.num_agents, 2)
+        assert state.physical_state.agent_pos.shape == (env.num_agents, 2)
 
     def test_env_step(self):
         env = camar_v0(map_generator=random_grid(num_agents=2))
@@ -94,3 +95,47 @@ class TestEnvironment:
         assert obs_next.shape == (num_envs, env.num_agents, env.observation_size)
         assert reward.shape == (num_envs, env.num_agents, 1)
         assert info is not None
+
+    def test_env_with_holonomic_dynamic(self):
+        env = camar_v0(
+            map_generator=random_grid(num_agents=2),
+            dynamic=HolonomicDynamic(accel=10.0, max_speed=8.0, damping=0.5)
+        )
+        key = jax.random.PRNGKey(0)
+        key_r, key_a, key_s = jax.random.split(key, 3)
+
+        obs, state = env.reset(key_r)
+        actions = env.action_spaces.sample(key_a)
+
+        obs_next, state_next, reward, done, info = env.step(key_s, state, actions)
+
+        assert type(env.dynamic) is HolonomicDynamic
+        assert env.dynamic.accel == 10.0
+        assert env.dynamic.max_speed == 8.0
+        assert env.dynamic.damping == 0.5
+        assert obs_next.shape == (env.num_agents, env.observation_size)
+        assert reward.shape == (env.num_agents, 1)
+
+    def test_env_with_diffdrive_dynamic(self):
+        env = camar_v0(
+            map_generator=string_grid(map_str="...", num_agents=1),
+            dynamic=DiffDriveDynamic(
+                linear_speed_max=2.0,
+                angular_speed_max=3.0,
+                mass=2.0
+            )
+        )
+        key = jax.random.PRNGKey(0)
+        key_r, key_a, key_s = jax.random.split(key, 3)
+
+        obs, state = env.reset(key_r)
+        actions = env.action_spaces.sample(key_a)
+
+        obs_next, state_next, reward, done, info = env.step(key_s, state, actions)
+
+        assert type(env.dynamic) is DiffDriveDynamic
+        assert env.dynamic.linear_speed_max == 2.0
+        assert env.dynamic.angular_speed_max == 3.0
+        assert env.dynamic.mass == 2.0
+        assert obs_next.shape == (env.num_agents, env.observation_size)
+        assert reward.shape == (env.num_agents, 1)

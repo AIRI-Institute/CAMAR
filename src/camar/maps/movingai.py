@@ -3,7 +3,7 @@ from typing import List, Optional
 
 import jax.numpy as jnp
 
-from .base_map import base_map
+from .base import base_map
 from .batched_string_grid import batched_string_grid
 from .const import PREGEN_DEVICE
 from .utils import detect_edges, get_movingai

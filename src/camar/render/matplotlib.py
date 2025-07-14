@@ -18,7 +18,7 @@ class Visualizer(object):
 		self.state_seq = state_seq
 		self.reward_seq = reward_seq
 		self.path = path
-		
+
 		self.init_render()
 
 	def animate(
@@ -44,24 +44,24 @@ class Visualizer(object):
 	def init_render(self):
 		from matplotlib.patches import Circle, ConnectionPatch
 		state = self.state_seq[0]
-		
+
 		self.fig, self.ax = plt.subplots(1, 1, figsize=(self.env.width / 4, self.env.height / 4))
 		# self.fig, self.ax = plt.subplots(1, 1, figsize=(5, 5))
 
 		if self.path is not None:
 			self.ax.plot(self.path[:, 0], self.path[:, 1], lw=1, alpha=0.7)
-		
+
 		xlim = (self.env.width + 1) / 2
 		ylim = (self.env.height + 1) / 2
 		self.ax.set_xlim([- xlim, xlim])
 		self.ax.set_ylim([- ylim, ylim])
-		
+
 		self.agent_artists = []
 		self.con_artists = []
 		for i in range(self.env.num_agents):
 			# agents
 			c = Circle(
-				state.agent_pos[i], self.env.agent_rad, color="dodgerblue", alpha=0.8,
+				state.physical_state.agent_pos[i], self.env.agent_rad, color="dodgerblue", alpha=0.8,
 			)
 			self.ax.add_patch(c)
 			self.agent_artists.append(c)
@@ -74,29 +74,29 @@ class Visualizer(object):
 
 			# connections
 			con = ConnectionPatch(
-				state.agent_pos[i], state.goal_pos[i], "data", "data", lw=0.3, ls="--", color="dimgray", alpha=0.8,
+				state.physical_state.agent_pos[i], state.goal_pos[i], "data", "data", lw=0.3, ls="--", color="dimgray", alpha=0.8,
 			)
 			self.ax.add_patch(con)
 			self.con_artists.append(con)
 
-		
+
 		for i in range(self.env.num_landmarks):
 			c = Circle(
-				state.landmark_pos[i], self.env.landmark_rad, color="black",
+				state.physical_state.landmark_pos[i], self.env.landmark_rad, color="black",
 			)
 			self.ax.add_patch(c)
 
 		self.ax.set_title(f"Step: {state.step}")
 
 		# self.step_counter = self.ax.text(-1.95, 1.95, f"Step: {state.step}", va="top")
-			
+
 	def update(self, frame):
 		state = self.state_seq[frame]
 		for i, c in enumerate(self.agent_artists):
-			c.center = state.agent_pos[i]
+			c.center = state.physical_state.agent_pos[i]
 		for i, con in enumerate(self.con_artists):
-			con.xy1 = state.agent_pos[i]
-		
+			con.xy1 = state.physical_state.agent_pos[i]
+
 		self.ax.set_title(f"Step: {state.step}")
 
 		# self.step_counter.set_text(f"Step: {state.step}")

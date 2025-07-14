@@ -68,7 +68,7 @@ class Visualizer:
         ):
             landmark_pos = {}
             for state in self.state_seq:
-                for landmark, (landmark_x, landmark_y) in enumerate(state.landmark_pos):
+                for landmark, (landmark_x, landmark_y) in enumerate(state.physical_state.landmark_pos):
                     if landmark not in landmark_pos:
                         landmark_pos[landmark] = {"cx": [], "cy": []}
                     landmark_pos[landmark]["cx"].append(float(landmark_x) / self.scale)
@@ -107,7 +107,7 @@ class Visualizer:
                 state = self.state_seq
 
             landmark_svg = []
-            for landmark_x, landmark_y in state.landmark_pos:
+            for landmark_x, landmark_y in state.physical_state.landmark_pos:
 
                 hex_color = LANDMARK_COLOR
                 hue, saturation, lightness = hex_to_hsl(hex_color)
@@ -198,7 +198,7 @@ class Visualizer:
         ):
             agent_pos = {}
             for state in self.state_seq:
-                for agent, (agent_x, agent_y) in enumerate(state.agent_pos):
+                for agent, (agent_x, agent_y) in enumerate(state.physical_state.agent_pos):
                     if agent not in agent_pos:
                         agent_pos[agent] = {"cx": [], "cy": []}
 
@@ -241,7 +241,7 @@ class Visualizer:
             else:
                 state = self.state_seq
             agent_svg = []
-            for i, (agent_x, agent_y) in enumerate(state.agent_pos):
+            for i, (agent_x, agent_y) in enumerate(state.physical_state.agent_pos):
 
                 if self.use_all_colors:
                     color = (i * self.color_step) % 360

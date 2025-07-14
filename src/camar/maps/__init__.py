@@ -1,4 +1,4 @@
-from .base_map import base_map
+from .base import base_map
 from .batched_string_grid import batched_string_grid
 from .caves_cont import caves_cont
 from .labmaze_grid import labmaze_grid

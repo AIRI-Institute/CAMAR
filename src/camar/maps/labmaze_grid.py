@@ -1,6 +1,6 @@
 from typing import Optional
 
-from .base_map import base_map
+from .base import base_map
 from .batched_string_grid import batched_string_grid
 
 

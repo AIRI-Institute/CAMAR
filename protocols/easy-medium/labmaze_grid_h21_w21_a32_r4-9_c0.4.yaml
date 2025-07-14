@@ -1,13 +1,28 @@
 map_generator: "labmaze_grid"
+dynamic: "HolonomicDynamic"
+lifelong: false
+window: null
 max_steps: 1000
-num_maps: 10
-height: 21
-width: 21
-room_min_size: 4
-room_max_size: 9
-extra_connection_probability: 0.4
-num_agents: 32
-max_free_pos: 50
-
 frameskip: 15
 max_obs: 3 # can be adjusted
+pos_shaping_factor: null
+dt: 0.01
+contact_force: 500
+contact_margin: 0.001
+
+map_kwargs:
+  num_maps: 10
+  height: 21
+  width: 21
+  room_min_size: 4
+  room_max_size: 9
+  extra_connection_probability: 0.4
+  num_agents: 32
+  max_free_pos: 50
+
+dynamic_kwargs:
+  accel: 5.0
+  max_speed: 6.0
+  damping: 0.25
+  mass: 1.0
+  dt: 0.01

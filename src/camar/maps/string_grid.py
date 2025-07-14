@@ -5,7 +5,7 @@ import jax.numpy as jnp
 from jax import Array
 from jax.typing import ArrayLike
 
-from .base_map import base_map
+from .base import base_map
 from .const import ENV_DEVICE
 from .utils import idx2pos, map_str2array, parse_map_array, random_truncate
 

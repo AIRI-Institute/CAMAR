@@ -1,10 +1,26 @@
 map_generator: "random_grid"
+dynamic: "HolonomicDynamic"
+lifelong: false
+window: null
 max_steps: 1000
-num_rows: 20
-num_cols: 20
-obstacle_density: 0.05
-num_agents: 32
-grain_factor: 3
-
 frameskip: 15
 max_obs: 3 # can be adjusted
+pos_shaping_factor: null
+dt: 0.01
+contact_force: 500
+contact_margin: 0.001
+
+map_kwargs:
+  num_rows: 20
+  num_cols: 20
+  obstacle_density: 0.05
+  num_agents: 32
+  grain_factor: 3
+
+dynamic_kwargs:
+  accel: 5.0
+  max_speed: 6.0
+  damping: 0.25
+  mass: 1.0
+  dt: 0.01
+  

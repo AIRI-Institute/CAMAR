@@ -3,7 +3,7 @@ import jax.numpy as jnp
 from jax import Array
 from jax.typing import ArrayLike
 
-from .base_map import base_map
+from .base import base_map
 from .utils import get_border_landmarks, idx2pos, perlin_noise_vectorized
 
 

@@ -1,38 +1,53 @@
 import importlib
 from typing import Optional, Union
 
+from camar.dynamics import BaseDynamic
 from .environment import Camar
 from .maps import base_map
 
 MAPS_MODULE = "camar.maps"
+DYNAMICS_MODULE = "camar.dynamics"
 
 
 def make_env(
     map_generator: Optional[Union[str, base_map]] = "random_grid",
+    dynamic: Optional[Union[str, BaseDynamic]] = "HolonomicDynamic",
+    lifelong: bool = False,
     window: Optional[float] = None,
-    placeholder: float = 0.0,
     max_steps: int = 100,
     frameskip: int = 2,
     max_obs: Optional[int] = None,
+    pos_shaping_factor: Optional[float] = None,
     dt: float = 0.01,
-    damping: float = 0.25,
     contact_force: float = 500,
     contact_margin: float = 0.001,
-    **map_kwargs,
+    map_kwargs: Optional[dict] = None,
+    dynamic_kwargs: Optional[dict] = None,
 ):
     if isinstance(map_generator, str):
         module = importlib.import_module(MAPS_MODULE)
-        map_generator = getattr(module, map_generator)(**map_kwargs)
+        if map_kwargs is not None:
+            map_generator = getattr(module, map_generator)(**map_kwargs)
+        else:
+            map_generator = getattr(module, map_generator)()
+
+    if isinstance(dynamic, str):
+        module = importlib.import_module(DYNAMICS_MODULE)
+        if dynamic_kwargs is not None:
+            dynamic = getattr(module, dynamic)(**dynamic_kwargs)
+        else:
+            dynamic = getattr(module, dynamic)()
 
     env = Camar(
         map_generator=map_generator,
+        dynamic=dynamic,
+        lifelong=lifelong,
         window=window,
-        placeholder=placeholder,
         max_steps=max_steps,
         frameskip=frameskip,
         max_obs=max_obs,
+        pos_shaping_factor=pos_shaping_factor,
         dt=dt,
-        damping=damping,
         contact_force=contact_force,
         contact_margin=contact_margin,
     )
