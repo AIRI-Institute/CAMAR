@@ -177,8 +177,8 @@ env1 = camar_v0("string_grid", map_kwargs={"map_str": map_str, "num_agents": 8})
 env2 = camar_v0("random_grid", map_kwargs={"num_agents": 4, "num_rows": 10, "num_cols": 10})
 env3 = camar_v0("labmaze_grid", map_kwargs={"num_maps": 10, "num_agents": 3, "height": 7, "width": 7})
 ```
-
-For a complete list of available maps and their parameters, see [Supported Maps](#supported-maps).
+> [!NOTE]
+> For a complete list of available maps and their parameters, see [Supported Maps](#supported-maps)
 
 # Dynamics
 
@@ -304,9 +304,11 @@ env = camar_v0(
 )
 ```
 
-**Note:** Unlike other dynamics, `MixedDynamic` requires explicit specification of agent counts and in total it must match map_generator num_agents.
+> [!CAUTION]
+> Unlike other dynamics, `MixedDynamic` requires explicit specification of agent counts and in total it must match map_generator num_agents
 
-For a complete list of available dynamics and their parameters, see [Supported Dynamics](#supported-dynamics).
+> [!NOTE]
+> For a complete list of available dynamics and their parameters, see [Supported Dynamics](#supported-dynamics)
 
 # Supported Maps
 
