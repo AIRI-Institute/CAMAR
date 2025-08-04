@@ -33,9 +33,7 @@ class HolonomicDynamic(BaseDynamic):
         self.accel = accel
         assert accel > 0, "acceleration must be positive"
 
-        self.max_speed = (
-            max_speed  # negative means no restriction (can lead to integration errors)
-        )
+        self.max_speed = max_speed  # negative means no restriction (can lead to integration errors)
 
         self.damping = damping
         assert 0 <= damping < 1, "damping must be in [0, 1)"
@@ -68,14 +66,12 @@ class HolonomicDynamic(BaseDynamic):
         # semi-implicit euler integration
 
         vel = (1 - self.damping) * vel
-        vel += (force + actions / self.mass) * self.dt  # force-based control
+        vel += (force + self.accel * actions) / self.mass * self.dt  # force-based control
 
         speed = jnp.linalg.norm(vel, axis=-1, keepdims=True)  # (num_agents, 1)
         over_max = vel / speed * self.max_speed  # (num_agents, 2)
 
-        vel = jnp.where(
-            (speed > self.max_speed) & (self.max_speed >= 0), over_max, vel
-        )  # (num_agents, 2)
+        vel = jnp.where((speed > self.max_speed) & (self.max_speed >= 0), over_max, vel)  # (num_agents, 2)
 
         pos += vel * self.dt
 

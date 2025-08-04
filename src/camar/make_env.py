@@ -2,6 +2,7 @@ import importlib
 from typing import Optional, Union
 
 from camar.dynamics import BaseDynamic
+
 from .environment import Camar
 from .maps import base_map
 
@@ -13,12 +14,11 @@ def make_env(
     map_generator: Optional[Union[str, base_map]] = "random_grid",
     dynamic: Optional[Union[str, BaseDynamic]] = "HolonomicDynamic",
     lifelong: bool = False,
-    window: Optional[float] = None,
+    window: float = 0.3,
     max_steps: int = 100,
     frameskip: int = 2,
-    max_obs: Optional[int] = None,
-    pos_shaping_factor: Optional[float] = None,
-    dt: float = 0.01,
+    max_obs: int = 3,
+    pos_shaping_factor: float = 1.0,
     contact_force: float = 500,
     contact_margin: float = 0.001,
     map_kwargs: Optional[dict] = None,
@@ -47,7 +47,6 @@ def make_env(
         frameskip=frameskip,
         max_obs=max_obs,
         pos_shaping_factor=pos_shaping_factor,
-        dt=dt,
         contact_force=contact_force,
         contact_margin=contact_margin,
     )

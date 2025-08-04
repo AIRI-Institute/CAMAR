@@ -4,9 +4,7 @@ import jax.numpy as jnp
 from .const import PREGEN_DEVICE
 
 
-def map_str2array(
-    map_str, remove_border, add_border, preprocess=lambda map_array: map_array
-):
+def map_str2array(map_str, remove_border, add_border, preprocess=lambda map_array: map_array):
     map_array = []
     for line in map_str.split("\n"):
         line_array = []
@@ -27,9 +25,7 @@ def map_str2array(
         map_array = map_array[1:-1, 1:-1]
 
     if add_border:
-        map_array = jnp.pad(
-            map_array, pad_width=[(1, 1), (1, 1)], constant_values=[(1, 1), (1, 1)]
-        )
+        map_array = jnp.pad(map_array, pad_width=[(1, 1), (1, 1)], constant_values=[(1, 1), (1, 1)])
 
     return map_array
 
@@ -187,9 +183,7 @@ def get_movingai(map_names):
         path_to_map = f".cache/movingai/{collection}/{map_name}.map"
         if not os.path.exists(path_to_map):
             if collection not in zip_files:
-                url_collection = (
-                    f"https://movingai.com/benchmarks/{collection}/{collection}-map.zip"
-                )
+                url_collection = f"https://movingai.com/benchmarks/{collection}/{collection}-map.zip"
                 response = requests.get(url_collection)
                 zip_file = io.BytesIO(response.content)
 
@@ -241,9 +235,7 @@ def lerp(a, b, t):
 
 
 def generate_gradients(key, grid_width, grid_height):
-    angles = jax.random.uniform(
-        key, shape=(grid_width + 1, grid_height + 1), minval=0.0, maxval=2.0 * jnp.pi
-    )
+    angles = jax.random.uniform(key, shape=(grid_width + 1, grid_height + 1), minval=0.0, maxval=2.0 * jnp.pi)
     gradients = jnp.dstack((jnp.cos(angles), jnp.sin(angles)))
     return gradients
 

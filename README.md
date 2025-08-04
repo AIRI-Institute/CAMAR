@@ -61,7 +61,7 @@ pip install camar[labmaze]
 # MovingAI map support
 pip install camar[movingai]
 
-# BenchMARL baseline training TODO: release extending code for BenchMARL
+# BenchMARL baseline training
 pip install camar[benchmarl]
 ```
 
@@ -137,7 +137,7 @@ env = OptimisticResetVecEnvWrapper(
 
 # Maps
 
-CAMAR provides a variety of map types for different navigation scenarios. The default is `random_grid` with randomly positioned obstacles, agents, and goals on each reset.
+CAMAR provides a variety of map types for different navigation scenarios. The default is `random_grid` with randomly positioned obstacles, agents, and goals on each reset. A key feature across all maps is the support for **heterogeneous agent and goal sizes**. By specifying a range for agent/goal sizes, each agent/goal can have a unique size, sampled uniformly from the given range.
 
 ## Using Different Maps
 
@@ -179,6 +179,44 @@ env3 = camar_v0("labmaze_grid", map_kwargs={"num_maps": 10, "num_agents": 3, "he
 ```
 > [!NOTE]
 > For a complete list of available maps and their parameters, see [Supported Maps](#supported-maps)
+
+## Heterogeneous Agent and Goal Sizes
+
+All maps support heterogeneous agent and goal sizes, allowing each agent/goal to have a unique size sampled from a specified range. This is useful for creating more realistic environments with diverse agent populations.
+
+### Using Heterogeneous Sizes
+
+```python
+# Create environment with agents of varying radii (0.05 to 0.15)
+env = camar_v0(
+    "random_grid",
+    map_kwargs={
+        "num_agents": 8,
+        "agent_rad_range": (0.05, 0.15)  # Tuple for agent raduis range
+    }
+)
+
+# Create environment with both heterogeneous agents and goals
+env = camar_v0(
+    "string_grid",
+    map_kwargs={
+        "map_str": map_str,
+        "num_agents": 4,
+        "agent_rad_range": (0.03, 0.08),  # Agent size range
+        "goal_rad_range": (0.01, 0.03)    # Goal size range
+    }
+)
+
+# Create environment with homogeneous agents (best performance)
+env = camar_v0(
+    "labmaze_grid",
+    map_kwargs={
+        "num_agents": 6,
+        "agent_rad_range": (0.05, 0.05),  # Same min/max for homogeneous
+        "goal_rad_range": (0.02, 0.02)    # Same min/max for homogeneous
+    }
+)
+```
 
 # Dynamics
 
@@ -330,8 +368,10 @@ env = camar_v0(
 - `num_cols: int = 20` - Number of columns
 - `obstacle_density: float = 0.2` - Obstacle density
 - `num_agents: int = 32` - Number of agents
-- `obstacle_size: float = 0.4` - Size of each obstacle
 - `grain_factor: int = 3` - Number of circles per obstacle edge
+- `obstacle_size: float = 0.4` - Size of each obstacle, actual `landmark_rad = obstacle_size / (2 * (grain_factor - 1))`
+- `agent_rad_range: Optional[Tuple[float, float]] = None` - Agent size. Can be tuple `(min, max)` for heterogeneous agents, if `min == max` agents will be homogeneous, or `agent_rad = (obstacle_size - 2 * landmark_rad) * 0.25` if `None`.
+- `goal_rad_range: Optional[Tuple[float, float]] = None` - Goal size. Can be tuple `(min, max)` for heterogeneous goals, if `min == max` goals will be homogeneous, or `goal_rad = agent_rad / 2.5` with support for both homo- and heterogeneous agents if `None`.
 
 </details>
 
@@ -348,10 +388,12 @@ env = camar_v0(
 - `remove_border: bool = False` - Remove map borders
 - `add_border: bool = True` - Add additional borders
 - `obstacle_size: float = 0.1` - Obstacle size
-- `agent_size: float = 0.09` - Agent size
-- `max_free_pos: Optional[int] = None` - Limit free positions
-- `map_array_preprocess: callable` - Map preprocessing function
-- `free_pos_array_preprocess: callable` - Free position preprocessing
+- `landmark_rad: float = 0.05` - Landmark radius
+- `agent_rad_range: Optional[Tuple[float, float]] = (0.03, 0.03)` - Agent size. Can be tuple `(min, max)` for heterogeneous agents, if `min == max` agents will be homogeneous, `agent_rad = 0.4 * landmark_rad` if `None`.
+- `goal_rad_range: Optional[Tuple[float, float]] = None` - Goal size. Can be tuple `(min, max)` for heterogeneous goals, if `min == max` goals will be homogeneous, or `goal_rad = agent_rad / 2.5` with support for both homo- and heterogeneous agents if `None`.
+- `max_free_pos: Optional[int] = None` - Maximum number of free positions
+- `map_array_preprocess: Callable[[ArrayLike], Array] = lambda map_array: map_array` - Map preprocessing function
+- `free_pos_array_preprocess: Callable[[ArrayLike], Array] = lambda free_pos_array: free_pos_array,` - Free position preprocessing
 
 </details>
 
@@ -377,9 +419,10 @@ Same parameters as `string_grid`, but with batch versions:
 - `max_rooms: int = -1` - Maximum rooms per map
 - `seed: int = 0` - Generation seed
 - `num_agents: int = 10` - Number of agents
-- `obstacle_size: float = 0.1` - Obstacle size
-- `agent_size: float = 0.06` - Agent size
-- `max_free_pos: int = None` - Maximum free positions
+- `landmark_rad: float = 0.1` - Landmark radius
+- `agent_rad_range: Optional[Tuple[float, float]] = (0.05, 0.05)` - Agent size. Can be tuple `(min, max)` for heterogeneous agents, if `min == max` agents will be homogeneous.
+- `goal_rad_range: Optional[Tuple[float, float]] = None` - Goal size. Can be tuple `(min, max)` for heterogeneous goals, if `min == max` goals will be homogeneous, or `goal_rad = agent_rad / 2.5` with support for both homo- and heterogeneous agents if `None`.
+- `max_free_pos: int = None` - Maximum number of free positions
 - `**labmaze_kwargs` - Additional labmaze.RandomGrid parameters
 
 </details>
@@ -395,8 +438,10 @@ Same parameters as `string_grid`, but with batch versions:
 - `remove_border: bool = True` - Remove borders
 - `add_border: bool = False` - Add borders
 - `num_agents: int = 10` - Number of agents
-- `obstacle_size: float = 0.1` - Obstacle size
-- `agent_size: float = 0.06` - Agent size
+- `landmark_rad: float = 0.05` - Landmark radius
+- `agent_rad_range: Optional[Tuple[float, float]] = (0.03, 0.03)` - Agent size. Can be tuple `(min, max)` for heterogeneous agents, if `min == max` agents will be homogeneous.
+- `goal_rad_range: Optional[Tuple[float, float]] = None` - Goal size. Can be tuple `(min, max)` for heterogeneous goals, if `min == max` goals will be homogeneous, or `goal_rad = agent_rad / 2.5` with support for both homo- and heterogeneous agents if `None`.
+- `max_free_pos: int = None` - Maximum number of free positions
 
 </details>
 
@@ -411,8 +456,9 @@ Same parameters as `string_grid`, but with batch versions:
 - `free_ratio: int = 0.20` - Free position quantile
 - `add_borders: bool = True` - Add map borders
 - `num_agents: int = 16` - Number of agents
-- `obstacle_size: float = 0.1` - Obstacle size
-- `agent_size: float = 0.2` - Agent size
+- `landmark_rad: float = 0.05` - Landmark radius
+- `agent_rad_range: Optional[Tuple[float, float]] = (0.1, 0.1)` - Agent size. Can be tuple `(min, max)` for heterogeneous agents, if `min == max` agents will be homogeneous.
+- `goal_rad_range: Optional[Tuple[float, float]] = None` - Goal size. Can be tuple `(min, max)` for heterogeneous goals, if `min == max` goals will be homogeneous, or `goal_rad = agent_rad / 2.5` with support for both homo- and heterogeneous agents if `None`.
 
 </details>
 

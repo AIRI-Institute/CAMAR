@@ -39,6 +39,8 @@ class State:
 
     goal_pos: ArrayLike  # [num_agents, [x, y]]
 
+    sizes: "Sizes"  # noqa: F821 see maps/base.py
+
     is_collision: ArrayLike  # [num_agents, ]
 
     # done: ArrayLike  # bool [num_agents, ]

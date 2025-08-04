@@ -18,9 +18,7 @@ class MixedDynamic(BaseDynamic):
         )
 
         dt_0 = self.dynamics_batch[0].dt
-        assert all(x.dt == dt_0 for x in self.dynamics_batch), (
-            "all dynamics must have the same dt"
-        )
+        assert all(x.dt == dt_0 for x in self.dynamics_batch), "all dynamics must have the same dt"
 
         # Create the MixedState dataclass dynamically
         self._create_mixed_state_class()
@@ -51,9 +49,7 @@ class MixedDynamic(BaseDynamic):
             """Create a mixed state by creating individual states for each dynamic"""
             values = {}
 
-            for i, (dynamic, num_agents) in enumerate(
-                zip(self.dynamics_batch, self.num_agents_batch)
-            ):
+            for i, (dynamic, num_agents) in enumerate(zip(self.dynamics_batch, self.num_agents_batch)):
                 # Create individual state for this dynamic
                 individual_state = dynamic.state_class.create(
                     key,
@@ -61,9 +57,7 @@ class MixedDynamic(BaseDynamic):
                 )
                 values[f"state_{i}"] = individual_state
 
-            values["agent_pos"] = (
-                agent_pos  # TODO: this is the copy - may be can be fixed
-            )
+            values["agent_pos"] = agent_pos  # TODO: this is the copy - may be can be fixed
 
             # Create the mixed state
             return cls(**values)
@@ -101,9 +95,7 @@ class MixedDynamic(BaseDynamic):
         """Integrate each individual state separately"""
         new_values = {}
         agent_pos = []
-        for i, (dynamic, num_agents) in enumerate(
-            zip(self.dynamics_batch, self.num_agents_batch)
-        ):
+        for i, (dynamic, num_agents) in enumerate(zip(self.dynamics_batch, self.num_agents_batch)):
             # Integrate individual state
             new_state = dynamic.integrate(
                 key,

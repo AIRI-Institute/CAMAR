@@ -1,4 +1,4 @@
-from typing import List, Optional, Callable
+from typing import List, Optional, Callable, Tuple
 
 import jax
 import jax.numpy as jnp
@@ -29,8 +29,9 @@ class batched_string_grid(base_map):
         random_goals: bool = True,
         remove_border: bool = False,
         add_border: bool = True,
-        obstacle_size: float = 0.1,
-        agent_size: float = 0.06,
+        landmark_rad: float = 0.05,
+        agent_rad_range: Optional[Tuple[float, float]] = (0.03, 0.03),
+        goal_rad_range: Optional[Tuple[float, float]] = None,
         max_free_pos: Optional[int] = None,
         map_array_preprocess: Callable[[ArrayLike], Array] = lambda map_array: map_array,
         free_pos_array_preprocess: Callable[[ArrayLike], Array] = lambda free_pos_array: free_pos_array,
@@ -40,23 +41,26 @@ class batched_string_grid(base_map):
             num_agents = agent_idx_batch[0].shape[0]
 
             # check agent_idx_batch
-            assert all(
-                map(lambda agent_idx: agent_idx.shape[0] == num_agents, agent_idx_batch)
-            ), "agent_idx.shape must be the same in a batch."
+            assert all(map(lambda agent_idx: agent_idx.shape[0] == num_agents, agent_idx_batch)), (
+                "agent_idx.shape must be the same in a batch."
+            )
             assert len(agent_idx_batch) == self.batch_size
 
         if goal_idx_batch is not None:
             num_agents = goal_idx_batch[0].shape[0]
 
             # check goal_idx_batch
-            assert all(
-                map(lambda goal_idx: goal_idx.shape[0] == num_agents, goal_idx_batch)
-            ), "goal_idx.shape must be the same in a batch."
+            assert all(map(lambda goal_idx: goal_idx.shape[0] == num_agents, goal_idx_batch)), (
+                "goal_idx.shape must be the same in a batch."
+            )
             assert len(goal_idx_batch) == self.batch_size
 
-        self.num_agents = num_agents
-        self.obstacle_size = obstacle_size
-        self.agent_size = agent_size
+        self._num_agents = num_agents
+        self._landmark_rad = landmark_rad
+        self.agent_rad_range = agent_rad_range
+        self.goal_rad_range = goal_rad_range
+
+        self.setup_rad()
 
         map_array_batch = list(
             map(
@@ -72,12 +76,9 @@ class batched_string_grid(base_map):
 
         # check map_array_batch
         map_array_shape = map_array_batch[0].shape
-        map_array_checks = map(
-            lambda map_array: map_array.shape == map_array_shape, map_array_batch
-        )
+        map_array_checks = map(lambda map_array: map_array.shape == map_array_shape, map_array_batch)
         assert all(map_array_checks), (
-            "all maps must have the same shape."
-            "Resize or provide resize map_array_preprocess."
+            "all maps must have the same shape.Resize or provide resize map_array_preprocess."
         )
 
         if free_pos_str_batch is not None:
@@ -95,8 +96,7 @@ class batched_string_grid(base_map):
 
             # check free_pos_array_batch
             free_pos_array_checks = map(
-                lambda map_array, free_pos_array: map_array.shape
-                == free_pos_array.shape,
+                lambda map_array, free_pos_array: map_array.shape == free_pos_array.shape,
                 map_array_batch,
                 free_pos_array_batch,
             )
@@ -140,7 +140,7 @@ class batched_string_grid(base_map):
         self.landmark_pos_batch, free_pos_batch, height_batch, width_batch = zip(
             *map(
                 lambda map_array, free_pos_array: parse_map_array(
-                    map_array, obstacle_size, free_pos_array
+                    map_array, 2 * self._landmark_rad, free_pos_array
                 ),
                 map_array_batch,
                 free_pos_array_batch,
@@ -159,15 +159,11 @@ class batched_string_grid(base_map):
             "map width must be the same in a batch."
         )
 
-        self.num_landmarks = max(
-            map(lambda landmark_pos: landmark_pos.shape[0], self.landmark_pos_batch)
-        )
+        self._num_landmarks = max(map(lambda landmark_pos: landmark_pos.shape[0], self.landmark_pos_batch))
         self.free_pos_num = min(map(lambda free_pos: free_pos.shape[0], free_pos_batch))
 
         if max_free_pos is not None:
-            self.free_pos_num = min(
-                self.free_pos_num, max_free_pos
-            )  # for memory control
+            self.free_pos_num = min(self.free_pos_num, max_free_pos)  # for memory control
 
         # check free cells is enough for all agents
         assert self.free_pos_num >= self.num_agents, (
@@ -177,9 +173,7 @@ class batched_string_grid(base_map):
         self.landmark_pos_batch = jnp.stack(
             list(
                 map(
-                    lambda landmark_pos: pad_placeholder(
-                        landmark_pos, self.num_landmarks
-                    ),
+                    lambda landmark_pos: pad_placeholder(landmark_pos, self.num_landmarks),
                     self.landmark_pos_batch,
                 )
             ),
@@ -204,21 +198,17 @@ class batched_string_grid(base_map):
             agent_pos_batch = jax.vmap(idx2pos, in_axes=[0, 0, None, None, None])(
                 jnp.array(agent_idx_batch)[:, :, 0],
                 jnp.array(agent_idx_batch)[:, :, 1],
-                obstacle_size,
+                2 * self._landmark_rad,
                 self.height,
                 self.width,
             )
-            self.generate_agents = lambda key_batch, key_a: jax.random.choice(
-                key_batch, agent_pos_batch
-            )
+            self.generate_agents = lambda key_batch, key_a: jax.random.choice(key_batch, agent_pos_batch)
 
         elif random_agents:
 
             def generate_agents(key_batch, key_a):
                 free_pos = jax.random.choice(key_batch, free_pos_batch)
-                agent_pos = jax.random.choice(
-                    key_a, free_pos, shape=(self.num_agents,), replace=False
-                )
+                agent_pos = jax.random.choice(key_a, free_pos, shape=(self.num_agents,), replace=False)
                 return agent_pos
 
             self.generate_agents = generate_agents
@@ -231,29 +221,23 @@ class batched_string_grid(base_map):
                 replace=False,
                 axis=1,
             )
-            self.generate_agents = lambda key_batch, key_a: jax.random.choice(
-                key_batch, agent_pos_batch
-            )
+            self.generate_agents = lambda key_batch, key_a: jax.random.choice(key_batch, agent_pos_batch)
 
         if goal_idx_batch is not None:
             goal_pos_batch = jax.vmap(idx2pos, in_axes=[0, 0, None, None, None])(
                 jnp.array(goal_idx_batch)[:, :, 0],
                 jnp.array(goal_idx_batch)[:, :, 1],
-                obstacle_size,
+                2 * self._landmark_rad,
                 self.height,
                 self.width,
             )
-            self.generate_goals = lambda key_batch, key_a: jax.random.choice(
-                key_batch, goal_pos_batch
-            )
+            self.generate_goals = lambda key_batch, key_a: jax.random.choice(key_batch, goal_pos_batch)
 
         elif random_goals:
 
             def generate_goals(key_batch, key_g):
                 free_pos = jax.random.choice(key_batch, free_pos_batch)
-                goal_pos = jax.random.choice(
-                    key_g, free_pos, shape=(self.num_agents,), replace=False
-                )
+                goal_pos = jax.random.choice(key_g, free_pos, shape=(self.num_agents,), replace=False)
                 return goal_pos
 
             self.generate_goals = generate_goals
@@ -266,21 +250,57 @@ class batched_string_grid(base_map):
                 replace=False,
                 axis=1,
             )
-            self.generate_goals = lambda key_batch, key_g: jax.random.choice(
-                key_batch, goal_pos_batch
-            )
+            self.generate_goals = lambda key_batch, key_g: jax.random.choice(key_batch, goal_pos_batch)
+
+    def setup_rad(self):
+        # default is None
+        self.agent_rad = None
+        self.goal_rad = None
+        self.landmark_rad = None
+        self.proportional_goal_rad = False
+
+        # setup landmark_rad
+        self.landmark_rad = self._landmark_rad
+
+        # setup agent_rad
+        if self.agent_rad_range is not None:
+            if self.agent_rad_range[0] == self.agent_rad_range[1]:
+                self.agent_rad = self.agent_rad_range[0]
+        else:
+            self.agent_rad = 0.4 * self._landmark_rad
+
+        # setup goal_rad
+        if self.goal_rad_range is not None:
+            if self.goal_rad_range[0] == self.goal_rad_range[1]:
+                self.goal_rad = self.goal_rad_range[0]
+        # if goal_rad_range is None but agent_rad_range is not None, then goal_rad is proportional to agent_rad
+        elif self.agent_rad_range is not None:
+            if self.agent_rad_range[0] == self.agent_rad_range[1]:
+                self.goal_rad = self.agent_rad / 2.5
+            else:
+                self.proportional_goal_rad = True
+        else:
+            self.goal_rad = 0.4 * self._landmark_rad / 2.5
 
     @property
-    def landmark_rad(self) -> float:
-        return self.obstacle_size / 2
+    def homogeneous_agents(self) -> bool:
+        return self.agent_rad is not None
 
     @property
-    def agent_rad(self):
-        return self.agent_size / 2
+    def homogeneous_landmarks(self) -> bool:
+        return True
 
     @property
-    def goal_rad(self):
-        return self.agent_rad / 2.5
+    def homogeneous_goals(self) -> bool:
+        return self.goal_rad is not None
+
+    @property
+    def num_agents(self) -> int:
+        return self._num_agents
+
+    @property
+    def num_landmarks(self) -> int:
+        return self._num_landmarks
 
     @property
     def height(self):
@@ -293,7 +313,7 @@ class batched_string_grid(base_map):
     def reset(self, key: ArrayLike) -> tuple[Array, Array, Array, Array]:
         key_batch, key = jax.random.split(key, 2)
 
-        key_a, key_g = jax.random.split(key, 2)
+        key, key_a, key_g = jax.random.split(key, 3)
 
         # generate agents
         agent_pos = self.generate_agents(key_batch, key_a)
@@ -303,4 +323,6 @@ class batched_string_grid(base_map):
 
         landmark_pos = jax.random.choice(key_batch, self.landmark_pos_batch)
 
-        return key_g, landmark_pos, agent_pos, goal_pos
+        sizes = self.generate_sizes(key)
+
+        return key_g, landmark_pos, agent_pos, goal_pos, sizes

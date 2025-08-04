@@ -19,17 +19,26 @@ class BatchEnvWrapper(GymnaxWrapper):
 
         self.num_envs = num_envs
 
-        self.reset_fn = jax.vmap(self._env.reset, in_axes=(0, ))
-        self.step_fn = jax.vmap(self._env.step, in_axes=(0, 0, 0, ))
+        self.reset_fn = jax.vmap(self._env.reset, in_axes=(0,))
+        self.step_fn = jax.vmap(
+            self._env.step,
+            in_axes=(
+                0,
+                0,
+                0,
+            ),
+        )
 
-    @partial(jax.jit, static_argnums=(0, ))
+    @partial(jax.jit, static_argnums=(0,))
     def reset(self, rng):
         rng, _rng = jax.random.split(rng)
         rngs = jax.random.split(_rng, self.num_envs)
-        obs, env_state = self.reset_fn(rngs, )
+        obs, env_state = self.reset_fn(
+            rngs,
+        )
         return obs, env_state
 
-    @partial(jax.jit, static_argnums=(0, ))
+    @partial(jax.jit, static_argnums=(0,))
     def step(self, rng, state, action):
         rng, _rng = jax.random.split(rng)
         rngs = jax.random.split(_rng, self.num_envs)
@@ -44,16 +53,17 @@ class AutoResetEnvWrapper(GymnaxWrapper):
     def __init__(self, env):
         super().__init__(env)
 
-    @partial(jax.jit, static_argnums=(0, ))
+    @partial(jax.jit, static_argnums=(0,))
     def reset(self, key):
         return self._env.reset(key)
 
-    @partial(jax.jit, static_argnums=(0, ))
+    @partial(jax.jit, static_argnums=(0,))
     def step(self, rng, state, action):
-
         rng, _rng = jax.random.split(rng)
         obs_st, state_st, reward, done, info = self._env.step(_rng, state, action)
-        done = done.reshape(1, )
+        done = done.reshape(
+            1,
+        )
 
         rng, _rng = jax.random.split(rng)
         obs_re, state_re = self._env.reset(_rng)
@@ -61,7 +71,9 @@ class AutoResetEnvWrapper(GymnaxWrapper):
         # Auto-reset environment based on termination
         def auto_reset(done, state_re, state_st, obs_re, obs_st):
             state = jax.tree.map(
-                lambda x, y: jnp.where(jnp.expand_dims(done, range(1, x.ndim)), x, y), state_re, state_st
+                lambda x, y: jnp.where(jnp.expand_dims(done, range(1, x.ndim)), x, y),
+                state_re,
+                state_st,
             )
             obs = jnp.where(done[:, None, None], obs_re, obs_st)
 
@@ -85,24 +97,30 @@ class OptimisticResetVecEnvWrapper(GymnaxWrapper):
 
         self.num_envs = num_envs
         self.reset_ratio = reset_ratio
-        assert (
-            num_envs % reset_ratio == 0
-        ), "Reset ratio must perfectly divide num envs."
+        assert num_envs % reset_ratio == 0, "Reset ratio must perfectly divide num envs."
         self.num_resets = self.num_envs // reset_ratio
 
-        self.reset_fn = jax.vmap(self._env.reset, in_axes=(0, ))
-        self.step_fn = jax.vmap(self._env.step, in_axes=(0, 0, 0, ))
+        self.reset_fn = jax.vmap(self._env.reset, in_axes=(0,))
+        self.step_fn = jax.vmap(
+            self._env.step,
+            in_axes=(
+                0,
+                0,
+                0,
+            ),
+        )
 
-    @partial(jax.jit, static_argnums=(0, ))
+    @partial(jax.jit, static_argnums=(0,))
     def reset(self, rng):
         rng, _rng = jax.random.split(rng)
         rngs = jax.random.split(_rng, self.num_envs)
-        obs, env_state = self.reset_fn(rngs, )
+        obs, env_state = self.reset_fn(
+            rngs,
+        )
         return obs, env_state
 
-    @partial(jax.jit, static_argnums=(0, ))
+    @partial(jax.jit, static_argnums=(0,))
     def step(self, rng, state, action):
-
         rng, _rng = jax.random.split(rng)
         rngs = jax.random.split(_rng, self.num_envs)
         obs_st, state_st, reward, done, info = self.step_fn(rngs, state, action)
@@ -129,7 +147,9 @@ class OptimisticResetVecEnvWrapper(GymnaxWrapper):
         # Auto-reset environment based on termination
         def auto_reset(done, state_re, state_st, obs_re, obs_st):
             state = jax.tree.map(
-                lambda x, y: jnp.where(jnp.expand_dims(done, range(1, x.ndim)), x, y), state_re, state_st
+                lambda x, y: jnp.where(jnp.expand_dims(done, range(1, x.ndim)), x, y),
+                state_re,
+                state_st,
             )
             obs = jnp.where(done[:, None, None], obs_re, obs_st)
 
@@ -156,13 +176,13 @@ class LogWrapper(GymnaxWrapper):
     def __init__(self, env):
         super().__init__(env)
 
-    @partial(jax.jit, static_argnums=(0, ))
+    @partial(jax.jit, static_argnums=(0,))
     def reset(self, key: ArrayLike):
         obs, env_state = self._env.reset(key)
         state = LogEnvState(env_state, 0.0, 0, 0.0, 0, 0)
         return obs, state
 
-    @partial(jax.jit, static_argnums=(0, ))
+    @partial(jax.jit, static_argnums=(0,))
     def step(
         self,
         key: ArrayLike,
@@ -176,10 +196,8 @@ class LogWrapper(GymnaxWrapper):
             env_state=env_state,
             episode_returns=new_episode_return * (1 - done),
             episode_lengths=new_episode_length * (1 - done),
-            returned_episode_returns=state.returned_episode_returns * (1 - done)
-            + new_episode_return * done,
-            returned_episode_lengths=state.returned_episode_lengths * (1 - done)
-            + new_episode_length * done,
+            returned_episode_returns=state.returned_episode_returns * (1 - done) + new_episode_return * done,
+            returned_episode_lengths=state.returned_episode_lengths * (1 - done) + new_episode_length * done,
             timestep=state.timestep + 1,
         )
         info["returned_episode_returns"] = state.returned_episode_returns

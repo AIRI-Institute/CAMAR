@@ -36,13 +36,9 @@ class DiffDriveDynamic(BaseDynamic):
     ):
         self.linear_speed_max = linear_speed_max
         self.linear_speed_min = linear_speed_min
-        assert linear_speed_max >= linear_speed_min, (
-            "linear_speed_max must be greater than linear_speed_min"
-        )
+        assert linear_speed_max >= linear_speed_min, "linear_speed_max must be greater than linear_speed_min"
 
-        self.linear_speed_accel = (
-            linear_speed_max - linear_speed_min
-        ) / 2  # action space is [-1, 1]
+        self.linear_speed_accel = (linear_speed_max - linear_speed_min) / 2  # action space is [-1, 1]
 
         self.angular_speed_max = angular_speed_max
         self.angular_speed_min = angular_speed_min
@@ -50,9 +46,7 @@ class DiffDriveDynamic(BaseDynamic):
             "angular_speed_max must be greater than angular_speed_min"
         )
 
-        self.angular_speed_accel = (
-            angular_speed_max - angular_speed_min
-        ) / 2  # action space is [-1, 1]
+        self.angular_speed_accel = (angular_speed_max - angular_speed_min) / 2  # action space is [-1, 1]
 
         self.mass = mass
         self._dt = dt

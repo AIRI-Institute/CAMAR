@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Tuple
 
 from .base import base_map
 from .batched_string_grid import batched_string_grid
@@ -31,8 +31,9 @@ class labmaze_grid(batched_string_grid):
         max_rooms: int = -1,
         seed: int = 0,
         num_agents: int = 10,
-        obstacle_size: float = 0.2,
-        agent_size: float = 0.1,
+        landmark_rad: float = 0.1,
+        agent_rad_range: Optional[Tuple[float, float]] = (0.05, 0.05),
+        goal_rad_range: Optional[Tuple[float, float]] = None,
         max_free_pos: Optional[int] = None,
         **labmaze_kwargs,
     ) -> base_map:
@@ -55,7 +56,8 @@ class labmaze_grid(batched_string_grid):
             random_goals=True,
             remove_border=False,
             add_border=False,
-            obstacle_size=obstacle_size,
-            agent_size=agent_size,
+            landmark_rad=landmark_rad,
+            agent_rad_range=agent_rad_range,
+            goal_rad_range=goal_rad_range,
             max_free_pos=max_free_pos,
         )

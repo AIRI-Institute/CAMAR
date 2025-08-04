@@ -1,4 +1,3 @@
-
 import torch
 from tensordict import TensorDict, TensorDictBase
 from torchrl.data.tensor_specs import Bounded, Categorical, Composite, Unbounded
@@ -27,7 +26,7 @@ class CamarWrapper(_EnvWrapper):
         cls._jax = jax
         return jax
 
-    def __init__(self, seed, device, batch_size, env = None, **kwargs):
+    def __init__(self, seed, device, batch_size, env=None, **kwargs):
         if env is not None:
             kwargs["env"] = env
 
@@ -161,9 +160,11 @@ class CamarWrapper(_EnvWrapper):
         state_old = state
 
         state = self.jax.tree.map(
-            lambda x, y: self.jax.numpy.where(self.jax.numpy.expand_dims(envs_to_reset, range(1, x.ndim)), x, y),
+            lambda x, y: self.jax.numpy.where(
+                self.jax.numpy.expand_dims(envs_to_reset, range(1, x.ndim)), x, y
+            ),
             state_r,
-            state_old
+            state_old,
         )
 
         obs = self.jax.numpy.where(envs_to_reset[:, None, None], obs_r, obs_old)
@@ -244,7 +245,9 @@ class CamarWrapper(_EnvWrapper):
         )
 
         time_to_reach_goal = _ndarray_to_tensor(self._state.time_to_reach_goal)
-        coordination =  1 - _ndarray_to_tensor(self._state.num_collisions / self._state.step[:, None]).mean(-1) # mean for agents
+        coordination = 1 - _ndarray_to_tensor(self._state.num_collisions / self._state.step[:, None]).mean(
+            -1
+        )  # mean for agents
 
         flowtime = time_to_reach_goal.sum(dim=-1)
         makespan, _ = time_to_reach_goal.max(dim=-1)
@@ -267,40 +270,43 @@ class CamarWrapper(_EnvWrapper):
 
 
 class CamarEnv(CamarWrapper):
-
     def __init__(
         self,
-        map_generator,
         num_envs,
         seed,
-        max_steps = 1000,
-        window = 0.8,
-        placeholder = 0.0,
-        frameskip = 2,
-        max_obs = None,
-        dt = 0.01,
-        damping = 0.25,
-        contact_force = 500,
-        contact_margin = 0.001,
-        **map_kwargs,
+        device,
+        map_generator,
+        dynamic,
+        lifelong,
+        window,
+        max_steps,
+        frameskip,
+        max_obs,
+        pos_shaping_factor,
+        contact_force,
+        contact_margin,
+        map_kwargs,
+        dynamic_kwargs,
     ):
         batch_size = [num_envs]
 
         super().__init__(
             batch_size=batch_size,
-            map_generator=map_generator,
             num_envs=num_envs,
-            max_steps=max_steps,
             seed=seed,
+            device=device,
+            map_generator=map_generator,
+            dynamic=dynamic,
+            lifelong=lifelong,
             window=window,
-            placeholder=placeholder,
+            max_steps=max_steps,
             frameskip=frameskip,
             max_obs=max_obs,
-            dt=dt,
-            damping=damping,
+            pos_shaping_factor=pos_shaping_factor,
             contact_force=contact_force,
             contact_margin=contact_margin,
-            **map_kwargs,
+            map_kwargs=map_kwargs,
+            dynamic_kwargs=dynamic_kwargs,
         )
 
     def _check_kwargs(self, kwargs: dict):
@@ -311,34 +317,36 @@ class CamarEnv(CamarWrapper):
 
     def _build_env(
         self,
-        map_generator,
         num_envs,
         seed,
-        max_steps,
+        map_generator,
+        dynamic,
+        lifelong,
         window,
-        placeholder,
+        max_steps,
         frameskip,
         max_obs,
-        dt,
-        damping,
+        pos_shaping_factor,
         contact_force,
         contact_margin,
-        **map_kwargs,
+        map_kwargs,
+        dynamic_kwargs,
     ):
         self.map_generator = map_generator
 
         env = camar_v0(
-            map_generator,
+            map_generator=map_generator,
+            dynamic=dynamic,
+            lifelong=lifelong,
             window=window,
-            placeholder=placeholder,
             max_steps=max_steps,
             frameskip=frameskip,
             max_obs=max_obs,
-            dt=dt,
-            damping=damping,
+            pos_shaping_factor=pos_shaping_factor,
             contact_force=contact_force,
             contact_margin=contact_margin,
-            **map_kwargs,
+            map_kwargs=map_kwargs,
+            dynamic_kwargs=dynamic_kwargs,
         )
 
         return super()._build_env(env)

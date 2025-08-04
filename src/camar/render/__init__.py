@@ -1,4 +1,4 @@
-from .matplotlib import Visualizer as MPL_Visualizer
-from .svg import Visualizer as SVG_Visualizer
+from .matplotlib import MPLVisualizer
+from .svg import SVGVisualizer
 
-__all__ = ["SVG_Visualizer", "MPL_Visualizer"]
+__all__ = ["SVGVisualizer", "MPLVisualizer"]

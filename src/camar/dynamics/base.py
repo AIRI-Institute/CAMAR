@@ -40,7 +40,11 @@ class BaseDynamic(ABC):
 
     @abstractmethod
     def integrate(
-        self, key: ArrayLike, force: ArrayLike, physical_state: PhysicalState, actions: ArrayLike
+        self,
+        key: ArrayLike,
+        force: ArrayLike,
+        physical_state: PhysicalState,
+        actions: ArrayLike,
     ) -> PhysicalState:
         """
         Integrate the physical state forward in time.
