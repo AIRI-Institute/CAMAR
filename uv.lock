@@ -228,7 +228,7 @@ sdist = { url = "https://files.pythonhosted.org/packages/ca/6d/1ffa5c64533bc2fa4
 
 [[package]]
 name = "camar"
-version = "0.2.0"
+version = "0.3.0"
 source = { editable = "." }
 dependencies = [
     { name = "flax" },
