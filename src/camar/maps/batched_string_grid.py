@@ -15,8 +15,10 @@ from .utils import (
     parse_map_array,
     random_truncate,
 )
+from camar.registry import register_map
 
 
+@register_map()
 class batched_string_grid(base_map):
     def __init__(
         self,

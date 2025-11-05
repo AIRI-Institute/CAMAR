@@ -8,8 +8,10 @@ from jax.typing import ArrayLike
 from .base import base_map
 from .const import ENV_DEVICE
 from .utils import idx2pos, map_str2array, parse_map_array, random_truncate
+from camar.registry import register_map
 
 
+@register_map()
 class string_grid(base_map):
     def __init__(
         self,

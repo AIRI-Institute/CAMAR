@@ -5,6 +5,7 @@ from flax import struct
 from jax.typing import ArrayLike
 
 from .base import BaseDynamic, PhysicalState
+from camar.registry import register_dynamic
 
 
 @struct.dataclass
@@ -13,7 +14,14 @@ class HolonomicState(PhysicalState):
     agent_vel: ArrayLike  # (num_agents, 2)
 
     @classmethod
-    def create(cls, key: ArrayLike, agent_pos: ArrayLike) -> "HolonomicState":
+    def create(
+        cls,
+        key: ArrayLike,
+        landmark_pos: ArrayLike,
+        agent_pos: ArrayLike,
+        goal_pos: ArrayLike,
+        sizes: "Sizes",  # noqa: F821 see maps/base.py
+    ) -> "HolonomicState":
         num_agents = agent_pos.shape[0]
         return cls(
             agent_pos=agent_pos,
@@ -21,6 +29,7 @@ class HolonomicState(PhysicalState):
         )
 
 
+@register_dynamic()
 class HolonomicDynamic(BaseDynamic):
     def __init__(
         self,

@@ -19,7 +19,7 @@ class TestEnvironment:
 
     def test_env_reset(self):
         env = camar_v0()
-        key = jax.random.PRNGKey(0)
+        key = jax.random.key(0)
         obs, state = env.reset(key)
 
         assert obs is not None
@@ -29,7 +29,7 @@ class TestEnvironment:
 
     def test_env_step(self):
         env = camar_v0(map_generator=random_grid(num_agents=2))
-        key = jax.random.PRNGKey(0)
+        key = jax.random.key(0)
         key_r, key_a, key_s = jax.random.split(key, 3)
 
         obs, state = env.reset(key_r)
@@ -57,7 +57,7 @@ class TestEnvironment:
         .....#.....
         """
         env = camar_v0(map_generator=string_grid(map_str=map_str, num_agents=2))
-        key = jax.random.PRNGKey(0)
+        key = jax.random.key(0)
         key_r, key_a, key_s = jax.random.split(key, 3)
 
         obs, state = env.reset(key_r)
@@ -99,9 +99,9 @@ class TestEnvironment:
     def test_env_with_holonomic_dynamic(self):
         env = camar_v0(
             map_generator=random_grid(num_agents=2),
-            dynamic=HolonomicDynamic(accel=10.0, max_speed=8.0, damping=0.5)
+            dynamic=HolonomicDynamic(accel=10.0, max_speed=8.0, damping=0.5),
         )
-        key = jax.random.PRNGKey(0)
+        key = jax.random.key(0)
         key_r, key_a, key_s = jax.random.split(key, 3)
 
         obs, state = env.reset(key_r)
@@ -119,13 +119,9 @@ class TestEnvironment:
     def test_env_with_diffdrive_dynamic(self):
         env = camar_v0(
             map_generator=string_grid(map_str="...", num_agents=1),
-            dynamic=DiffDriveDynamic(
-                linear_speed_max=2.0,
-                angular_speed_max=3.0,
-                mass=2.0
-            )
+            dynamic=DiffDriveDynamic(linear_speed_max=2.0, angular_speed_max=3.0, mass=2.0),
         )
-        key = jax.random.PRNGKey(0)
+        key = jax.random.key(0)
         key_r, key_a, key_s = jax.random.split(key, 3)
 
         obs, state = env.reset(key_r)

@@ -10,10 +10,7 @@ class TestMixedDynamic:
         holonomic = HolonomicDynamic()
         diffdrive = DiffDriveDynamic()
 
-        mixed = MixedDynamic(
-            dynamics_batch=[holonomic, diffdrive],
-            num_agents_batch=[2, 3]
-        )
+        mixed = MixedDynamic(dynamics_batch=[holonomic, diffdrive], num_agents_batch=[2, 3])
 
         assert len(mixed.dynamics_batch) == 2
         assert mixed.num_agents_batch == [2, 3]
@@ -22,10 +19,7 @@ class TestMixedDynamic:
     def test_mixed_dynamic_creation_single_dynamic(self):
         holonomic = HolonomicDynamic()
 
-        mixed = MixedDynamic(
-            dynamics_batch=[holonomic],
-            num_agents_batch=[4]
-        )
+        mixed = MixedDynamic(dynamics_batch=[holonomic], num_agents_batch=[4])
 
         assert len(mixed.dynamics_batch) == 1
         assert mixed.num_agents_batch == [4]
@@ -35,10 +29,7 @@ class TestMixedDynamic:
         holonomic = HolonomicDynamic()
         diffdrive = DiffDriveDynamic()
 
-        mixed = MixedDynamic(
-            dynamics_batch=[holonomic, diffdrive],
-            num_agents_batch=[2, 3]
-        )
+        mixed = MixedDynamic(dynamics_batch=[holonomic, diffdrive], num_agents_batch=[2, 3])
 
         assert mixed.action_size == 2  # Both dynamics have action_size 2
         assert mixed.dt == 0.01  # Both dynamics have dt 0.01
@@ -50,7 +41,7 @@ class TestMixedDynamic:
         with pytest.raises(AssertionError, match="dynamics and num_agents must have the same length"):
             MixedDynamic(
                 dynamics_batch=[holonomic],
-                num_agents_batch=[2, 3]  # Mismatched lengths
+                num_agents_batch=[2, 3],  # Mismatched lengths
             )
 
     def test_mixed_dynamic_different_dt(self):
@@ -58,35 +49,37 @@ class TestMixedDynamic:
         diffdrive = DiffDriveDynamic(dt=0.02)  # Different dt
 
         with pytest.raises(AssertionError, match="all dynamics must have the same dt"):
-            MixedDynamic(
-                dynamics_batch=[holonomic, diffdrive],
-                num_agents_batch=[2, 3]
-            )
+            MixedDynamic(dynamics_batch=[holonomic, diffdrive], num_agents_batch=[2, 3])
 
     def test_mixed_dynamic_state_creation(self):
         holonomic = HolonomicDynamic()
         diffdrive = DiffDriveDynamic()
 
-        mixed = MixedDynamic(
-            dynamics_batch=[holonomic, diffdrive],
-            num_agents_batch=[2, 3]
+        mixed = MixedDynamic(dynamics_batch=[holonomic, diffdrive], num_agents_batch=[2, 3])
+
+        key = jax.random.key(0)
+        agent_pos = jnp.array(
+            [
+                [0.0, 0.0],
+                [1.0, 1.0],  # First 2 agents (holonomic)
+                [2.0, 2.0],
+                [3.0, 3.0],
+                [4.0, 4.0],  # Next 3 agents (diffdrive)
+            ]
         )
 
-        key = jax.random.PRNGKey(0)
-        agent_pos = jnp.array([
-            [0.0, 0.0], [1.0, 1.0],  # First 2 agents (holonomic)
-            [2.0, 2.0], [3.0, 3.0], [4.0, 4.0]  # Next 3 agents (diffdrive)
-        ])
-
-        state = mixed.state_class.create(key, agent_pos)
+        landmark_pos = jnp.zeros((1, 2))
+        goal_pos = agent_pos + 1.0
+        sizes = {}
+        state = mixed.state_class.create(key, landmark_pos, agent_pos, goal_pos, sizes)
 
         assert state.agent_pos.shape == (5, 2)
 
-        assert hasattr(state, 'state_0')  # Holonomic state
+        assert hasattr(state, "state_0")  # Holonomic state
         assert state.state_0.agent_pos.shape == (2, 2)
         assert state.state_0.agent_vel.shape == (2, 2)
 
-        assert hasattr(state, 'state_1')  # DiffDrive state
+        assert hasattr(state, "state_1")  # DiffDrive state
         assert state.state_1.agent_pos.shape == (3, 2)
         assert state.state_1.agent_vel.shape == (3, 2)
         assert state.state_1.agent_angle.shape == (3, 1)
@@ -95,18 +88,23 @@ class TestMixedDynamic:
         holonomic = HolonomicDynamic()
         diffdrive = DiffDriveDynamic()
 
-        mixed = MixedDynamic(
-            dynamics_batch=[holonomic, diffdrive],
-            num_agents_batch=[2, 3]
+        mixed = MixedDynamic(dynamics_batch=[holonomic, diffdrive], num_agents_batch=[2, 3])
+
+        key = jax.random.key(0)
+        agent_pos = jnp.array(
+            [
+                [0.0, 0.0],
+                [1.0, 1.0],  # Holonomic agents
+                [2.0, 2.0],
+                [3.0, 3.0],
+                [4.0, 4.0],  # DiffDrive agents
+            ]
         )
 
-        key = jax.random.PRNGKey(0)
-        agent_pos = jnp.array([
-            [0.0, 0.0], [1.0, 1.0],  # Holonomic agents
-            [2.0, 2.0], [3.0, 3.0], [4.0, 4.0]  # DiffDrive agents
-        ])
-
-        state = mixed.state_class.create(key, agent_pos)
+        landmark_pos = jnp.zeros((1, 2))
+        goal_pos = agent_pos + 1.0
+        sizes = {}
+        state = mixed.state_class.create(key, landmark_pos, agent_pos, goal_pos, sizes)
 
         # No forces, no actions
         force = jnp.zeros((5, 2))
@@ -116,11 +114,11 @@ class TestMixedDynamic:
 
         assert new_state.agent_pos.shape == (5, 2)
 
-        assert hasattr(new_state, 'state_0')
+        assert hasattr(new_state, "state_0")
         assert new_state.state_0.agent_pos.shape == (2, 2)
         assert new_state.state_0.agent_vel.shape == (2, 2)
 
-        assert hasattr(new_state, 'state_1')
+        assert hasattr(new_state, "state_1")
         assert new_state.state_1.agent_pos.shape == (3, 2)
         assert new_state.state_1.agent_vel.shape == (3, 2)
         assert new_state.state_1.agent_angle.shape == (3, 1)
@@ -129,25 +127,35 @@ class TestMixedDynamic:
         holonomic = HolonomicDynamic()
         diffdrive = DiffDriveDynamic()
 
-        mixed = MixedDynamic(
-            dynamics_batch=[holonomic, diffdrive],
-            num_agents_batch=[2, 3]
+        mixed = MixedDynamic(dynamics_batch=[holonomic, diffdrive], num_agents_batch=[2, 3])
+
+        key = jax.random.key(0)
+        agent_pos = jnp.array(
+            [
+                [0.0, 0.0],
+                [1.0, 1.0],  # Holonomic agents
+                [2.0, 2.0],
+                [3.0, 3.0],
+                [4.0, 4.0],  # DiffDrive agents
+            ]
         )
 
-        key = jax.random.PRNGKey(0)
-        agent_pos = jnp.array([
-            [0.0, 0.0], [1.0, 1.0],  # Holonomic agents
-            [2.0, 2.0], [3.0, 3.0], [4.0, 4.0]  # DiffDrive agents
-        ])
-
-        state = mixed.state_class.create(key, agent_pos)
+        landmark_pos = jnp.zeros((1, 2))
+        goal_pos = agent_pos + 1.0
+        sizes = {}
+        state = mixed.state_class.create(key, landmark_pos, agent_pos, goal_pos, sizes)
 
         # Different actions for different agent types
         force = jnp.zeros((5, 2))
-        actions = jnp.array([
-            [1.0, 0.0], [0.0, 1.0],  # Holonomic actions
-            [0.5, 0.5], [0.0, 0.0], [1.0, -1.0]  # DiffDrive actions
-        ])
+        actions = jnp.array(
+            [
+                [1.0, 0.0],
+                [0.0, 1.0],  # Holonomic actions
+                [0.5, 0.5],
+                [0.0, 0.0],
+                [1.0, -1.0],  # DiffDrive actions
+            ]
+        )
 
         new_state = mixed.integrate(key, force, state, actions)
 
@@ -163,40 +171,50 @@ class TestMixedDynamic:
         holonomic2 = HolonomicDynamic(accel=10.0, mass=10.0)
         diffdrive = DiffDriveDynamic(mass=7.0)
 
-        mixed = MixedDynamic(
-            dynamics_batch=[holonomic1, holonomic2, diffdrive],
-            num_agents_batch=[2, 1, 3]
+        mixed = MixedDynamic(dynamics_batch=[holonomic1, holonomic2, diffdrive], num_agents_batch=[2, 1, 3])
+
+        key = jax.random.key(0)
+        agent_pos = jnp.array(
+            [
+                [0.0, 0.0],
+                [1.0, 1.0],  # Holonomic1 agents
+                [2.0, 2.0],  # Holonomic2 agent
+                [3.0, 3.0],
+                [4.0, 4.0],
+                [5.0, 5.0],  # DiffDrive agents
+            ]
         )
 
-        key = jax.random.PRNGKey(0)
-        agent_pos = jnp.array([
-            [0.0, 0.0], [1.0, 1.0],  # Holonomic1 agents
-            [2.0, 2.0],  # Holonomic2 agent
-            [3.0, 3.0], [4.0, 4.0], [5.0, 5.0]  # DiffDrive agents
-        ])
-
-        state = mixed.state_class.create(key, agent_pos)
+        landmark_pos = jnp.zeros((1, 2))
+        goal_pos = agent_pos + 1.0
+        sizes = {}
+        state = mixed.state_class.create(key, landmark_pos, agent_pos, goal_pos, sizes)
 
         force = jnp.zeros((6, 2))
-        actions = jnp.array([
-            [1.0, 0.0], [0.0, 1.0],  # Holonomic1 actions
-            [0.5, 0.5],  # Holonomic2 action
-            [0.0, 0.0], [1.0, 0.0], [0.0, 1.0]  # DiffDrive actions
-        ])
+        actions = jnp.array(
+            [
+                [1.0, 0.0],
+                [0.0, 1.0],  # Holonomic1 actions
+                [0.5, 0.5],  # Holonomic2 action
+                [0.0, 0.0],
+                [1.0, 0.0],
+                [0.0, 1.0],  # DiffDrive actions
+            ]
+        )
 
         new_state = mixed.integrate(key, force, state, actions)
 
         assert new_state.agent_pos.shape == (6, 2)
 
-        assert hasattr(new_state, 'state_0')  # Holonomic1
+        assert hasattr(new_state, "state_0")  # Holonomic1
         assert new_state.state_0.agent_pos.shape == (2, 2)
         assert new_state.state_0.agent_vel.shape == (2, 2)
 
-        assert hasattr(new_state, 'state_1')  # Holonomic2
+        assert hasattr(new_state, "state_1")  # Holonomic2
         assert new_state.state_1.agent_pos.shape == (1, 2)
         assert new_state.state_1.agent_vel.shape == (1, 2)
 
-        assert hasattr(new_state, 'state_2')  # DiffDrive
+        assert hasattr(new_state, "state_2")  # DiffDrive
         assert new_state.state_2.agent_pos.shape == (3, 2)
         assert new_state.state_2.agent_vel.shape == (3, 2)
         assert new_state.state_2.agent_angle.shape == (3, 1)
@@ -206,27 +224,42 @@ class TestMixedDynamic:
         holonomic = HolonomicDynamic(mass=1.0)
         diffdrive = DiffDriveDynamic(mass=7.0)
 
-        mixed = MixedDynamic(
-            dynamics_batch=[holonomic, diffdrive],
-            num_agents_batch=[2, 3]
+        mixed = MixedDynamic(dynamics_batch=[holonomic, diffdrive], num_agents_batch=[2, 3])
+
+        key = jax.random.key(0)
+        agent_pos = jnp.array(
+            [
+                [0.0, 0.0],
+                [1.0, 1.0],  # Holonomic agents
+                [2.0, 2.0],
+                [3.0, 3.0],
+                [4.0, 4.0],  # DiffDrive agents
+            ]
         )
 
-        key = jax.random.PRNGKey(0)
-        agent_pos = jnp.array([
-            [0.0, 0.0], [1.0, 1.0],  # Holonomic agents
-            [2.0, 2.0], [3.0, 3.0], [4.0, 4.0]  # DiffDrive agents
-        ])
+        landmark_pos = jnp.zeros((1, 2))
+        goal_pos = agent_pos + 1.0
+        sizes = {}
+        state = mixed.state_class.create(key, landmark_pos, agent_pos, goal_pos, sizes)
 
-        state = mixed.state_class.create(key, agent_pos)
-
-        force = jnp.array([
-            [1.0, 0.0], [0.0, 1.0],  # Forces for holonomic agents
-            [0.5, 0.5], [1.0, 0.0], [0.0, 1.0]  # Forces for diffdrive agents
-        ])
-        actions = jnp.array([
-            [0.5, 0.0], [0.0, 0.5],  # Actions for holonomic agents
-            [0.5, 0.5], [1.0, 0.0], [0.0, 1.0]  # Actions for diffdrive agents
-        ])
+        force = jnp.array(
+            [
+                [1.0, 0.0],
+                [0.0, 1.0],  # Forces for holonomic agents
+                [0.5, 0.5],
+                [1.0, 0.0],
+                [0.0, 1.0],  # Forces for diffdrive agents
+            ]
+        )
+        actions = jnp.array(
+            [
+                [0.5, 0.0],
+                [0.0, 0.5],  # Actions for holonomic agents
+                [0.5, 0.5],
+                [1.0, 0.0],
+                [0.0, 1.0],  # Actions for diffdrive agents
+            ]
+        )
 
         # JIT the integrate function
         jitted_integrate = jax.jit(mixed.integrate)
@@ -234,11 +267,11 @@ class TestMixedDynamic:
 
         assert new_state.agent_pos.shape == (5, 2)
 
-        assert hasattr(new_state, 'state_0')
+        assert hasattr(new_state, "state_0")
         assert new_state.state_0.agent_pos.shape == (2, 2)
         assert new_state.state_0.agent_vel.shape == (2, 2)
 
-        assert hasattr(new_state, 'state_1')
+        assert hasattr(new_state, "state_1")
         assert new_state.state_1.agent_pos.shape == (3, 2)
         assert new_state.state_1.agent_vel.shape == (3, 2)
         assert new_state.state_1.agent_angle.shape == (3, 1)
@@ -247,18 +280,23 @@ class TestMixedDynamic:
         holonomic = HolonomicDynamic()
         diffdrive = DiffDriveDynamic()
 
-        mixed = MixedDynamic(
-            dynamics_batch=[holonomic, diffdrive],
-            num_agents_batch=[2, 3]
+        mixed = MixedDynamic(dynamics_batch=[holonomic, diffdrive], num_agents_batch=[2, 3])
+
+        key = jax.random.key(0)
+        agent_pos = jnp.array(
+            [
+                [0.0, 0.0],
+                [1.0, 1.0],  # Holonomic agents
+                [2.0, 2.0],
+                [3.0, 3.0],
+                [4.0, 4.0],  # DiffDrive agents
+            ]
         )
 
-        key = jax.random.PRNGKey(0)
-        agent_pos = jnp.array([
-            [0.0, 0.0], [1.0, 1.0],  # Holonomic agents
-            [2.0, 2.0], [3.0, 3.0], [4.0, 4.0]  # DiffDrive agents
-        ])
-
-        state = mixed.state_class.create(key, agent_pos)
+        landmark_pos = jnp.zeros((1, 2))
+        goal_pos = agent_pos + 1.0
+        sizes = {}
+        state = mixed.state_class.create(key, landmark_pos, agent_pos, goal_pos, sizes)
 
         # Access individual states
         holonomic_state = state.state_0
@@ -274,15 +312,15 @@ class TestMixedDynamic:
     def test_mixed_dynamic_zero_agents(self):
         holonomic = HolonomicDynamic()
 
-        mixed = MixedDynamic(
-            dynamics_batch=[holonomic],
-            num_agents_batch=[0]
-        )
+        mixed = MixedDynamic(dynamics_batch=[holonomic], num_agents_batch=[0])
 
         assert mixed.num_agents == 0
 
-        key = jax.random.PRNGKey(0)
+        key = jax.random.key(0)
         agent_pos = jnp.array([]).reshape(0, 2)
 
-        state = mixed.state_class.create(key, agent_pos)
+        landmark_pos = jnp.zeros((1, 2))
+        goal_pos = agent_pos + 1.0
+        sizes = {}
+        state = mixed.state_class.create(key, landmark_pos, agent_pos, goal_pos, sizes)
         assert state.agent_pos.shape == (0, 2)

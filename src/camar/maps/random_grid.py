@@ -8,8 +8,10 @@ from jax.typing import ArrayLike
 
 from .base import base_map
 from .utils import get_border_landmarks
+from camar.registry import register_map
 
 
+@register_map()
 class random_grid(base_map):
     def __init__(
         self,

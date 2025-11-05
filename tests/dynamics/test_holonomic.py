@@ -15,17 +15,27 @@ def agent_pos():
     return jnp.array([[1.0, 1.0]])
 
 
+@pytest.fixture
+def landmark_pos():
+    return jnp.array([[0.0, 0.0]])
+
+
+@pytest.fixture
+def goal_pos():
+    return jnp.array([[2.0, 2.0]])
+
+
 class TestHolonomicState:
-    def test_holonomic_state_creation(self, key, agent_pos):
-        state = HolonomicState.create(key, agent_pos)
+    def test_holonomic_state_creation(self, key, agent_pos, landmark_pos, goal_pos):
+        state = HolonomicState.create(key, landmark_pos, agent_pos, goal_pos, sizes=None)
 
         assert state.agent_pos.shape == (1, 2)
         assert state.agent_vel.shape == (1, 2)
         assert jnp.array_equal(state.agent_pos, agent_pos)
         assert jnp.allclose(state.agent_vel, jnp.zeros((1, 2)))
 
-    def test_holonomic_state_agent_vel_initialization(self, key, agent_pos):
-        state = HolonomicState.create(key, agent_pos)
+    def test_holonomic_state_agent_vel_initialization(self, key, agent_pos, landmark_pos, goal_pos):
+        state = HolonomicState.create(key, landmark_pos, agent_pos, goal_pos, sizes=None)
 
         assert state.agent_vel.shape == (1, 2)
         assert jnp.allclose(state.agent_vel, jnp.zeros((1, 2)))
@@ -42,9 +52,7 @@ class TestHolonomicDynamic:
         assert dynamic.dt == 0.01
 
     def test_holonomic_dynamic_creation_custom(self):
-        dynamic = HolonomicDynamic(
-            accel=10.0, max_speed=8.0, damping=0.5, mass=2.0, dt=0.02
-        )
+        dynamic = HolonomicDynamic(accel=10.0, max_speed=8.0, damping=0.5, mass=2.0, dt=0.02)
 
         assert dynamic.accel == 10.0
         assert dynamic.max_speed == 8.0
@@ -62,7 +70,7 @@ class TestHolonomicDynamic:
     def test_holonomic_dynamic_integration_basic(self, key, agent_pos):
         dynamic = HolonomicDynamic()
 
-        state = HolonomicState.create(key, agent_pos)
+        state = HolonomicState.create(key, jnp.zeros((1, 2)), agent_pos, agent_pos + 1.0, sizes=None)
 
         # No forces, no actions
         force = jnp.zeros((1, 2))
@@ -73,14 +81,12 @@ class TestHolonomicDynamic:
         # Position should remain the same (no velocity)
         assert jnp.allclose(new_state.agent_pos, state.agent_pos)
         # Velocity should be damped
-        assert jnp.allclose(
-            new_state.agent_vel, state.agent_vel * (1 - dynamic.damping)
-        )
+        assert jnp.allclose(new_state.agent_vel, state.agent_vel * (1 - dynamic.damping))
 
     def test_holonomic_dynamic_jit_compatibility(self, key, agent_pos):
         dynamic = HolonomicDynamic()
 
-        state = HolonomicState.create(key, agent_pos)
+        state = HolonomicState.create(key, jnp.zeros((1, 2)), agent_pos, agent_pos + 1.0, sizes=None)
 
         force = jnp.array([[1.0, 0.0]])
         actions = jnp.array([[0.5, 0.0]])

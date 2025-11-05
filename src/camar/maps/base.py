@@ -161,7 +161,7 @@ class base_map(ABC):
     @property
     def sizes_class(self) -> Type["Sizes"]:  # noqa: F821
         """Class for storing generated sizes of agents, landmarks, and goals dynamically based on the configuration."""
-        if not hasattr(self, '_sizes_class'):
+        if not hasattr(self, "_sizes_class"):
             self._sizes_class = self._create_sizes_class()
         return self._sizes_class
 

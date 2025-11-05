@@ -108,7 +108,7 @@ class Camar:
         goal_dist = jnp.linalg.norm(agent_pos - goal_pos, axis=-1)
         on_goal = goal_dist < (self.map_generator.goal_rad if self.homogeneous_goals else sizes.goal_rad)
 
-        physical_state = self.dynamic.state_class.create(key, agent_pos)
+        physical_state = self.dynamic.state_class.create(key, landmark_pos, agent_pos, goal_pos, sizes)
 
         state = State(
             physical_state=physical_state,

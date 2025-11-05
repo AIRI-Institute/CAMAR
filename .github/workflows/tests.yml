@@ -61,7 +61,7 @@ jobs:
       run: uv run -- python --version
 
     - name: Run tests
-      run: uv run pytest tests/ -v
+      run: uv run pytest tests/ -vv --durations=0
 
   # job for python 3.13 (for testing without labmaze)
   build-py313:
@@ -91,4 +91,4 @@ jobs:
       run: uv sync --locked --dev --extra movingai
 
     - name: Run tests
-      run: uv run pytest tests/ --ignore=tests/maps/test_labmaze_grid.py -v
+      run: uv run pytest tests/ --ignore=tests/maps/test_labmaze_grid.py -vv --durations=0

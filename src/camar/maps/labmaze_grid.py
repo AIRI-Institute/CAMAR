@@ -2,6 +2,7 @@ from typing import Optional, Tuple
 
 from .base import base_map
 from .batched_string_grid import batched_string_grid
+from camar.registry import register_map
 
 
 def generate_labmaze_maps(num_maps, height, width, max_rooms, seed, **labmaze_kwargs):
@@ -22,6 +23,7 @@ def generate_labmaze_maps(num_maps, height, width, max_rooms, seed, **labmaze_kw
     return maps, free_pos
 
 
+@register_map()
 class labmaze_grid(batched_string_grid):
     def __init__(
         self,

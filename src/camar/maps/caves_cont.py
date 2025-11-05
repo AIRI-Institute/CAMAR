@@ -6,8 +6,10 @@ from typing import Optional, Tuple
 
 from .base import base_map
 from .utils import get_border_landmarks, idx2pos, perlin_noise_vectorized
+from camar.registry import register_map
 
 
+@register_map()
 class caves_cont(base_map):
     def __init__(
         self,

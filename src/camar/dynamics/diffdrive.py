@@ -5,25 +5,38 @@ from flax import struct
 from jax.typing import ArrayLike
 
 from .base import BaseDynamic, PhysicalState
+from camar.registry import register_dynamic
 
 
 @struct.dataclass
 class DiffDriveState(PhysicalState):
     agent_pos: ArrayLike  # (num_agents, 2)
-    agent_vel: ArrayLike  # (num_agents, 2) # TODO do we need this?
+    agent_vel: ArrayLike  # (num_agents, 2)
     agent_angle: ArrayLike  # (num_agents, 1)
 
     @classmethod
-    def create(cls, key: ArrayLike, agent_pos: ArrayLike) -> "DiffDriveState":
-        # TODO no access to num_agents, should be added?
+    def create(
+        cls,
+        key: ArrayLike,
+        landmark_pos: ArrayLike,
+        agent_pos: ArrayLike,
+        goal_pos: ArrayLike,
+        sizes: "Sizes",  # noqa: F821 see maps/base.py
+    ) -> "DiffDriveState":
         num_agents = agent_pos.shape[0]
+
+        # at the start all agents are facing the goal
+        # calculate angle (agents x goals)
+        ego_goal = goal_pos - agent_pos
+        agent_angle = jnp.arctan2(ego_goal[:, 1], ego_goal[:, 0]).reshape(num_agents, 1)
         return cls(
             agent_pos=agent_pos,
             agent_vel=jnp.zeros((num_agents, 2)),
-            agent_angle=jnp.zeros((num_agents, 1)),
+            agent_angle=agent_angle,
         )
 
 
+@register_dynamic()
 class DiffDriveDynamic(BaseDynamic):
     def __init__(
         self,

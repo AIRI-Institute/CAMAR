@@ -47,7 +47,7 @@ def diffdrive_dynamic():
         angular_speed_max=2.0,
         angular_speed_min=-2.0,
         mass=1.0,
-        dt=0.01
+        dt=0.01,
     )
 
 
@@ -55,10 +55,7 @@ def diffdrive_dynamic():
 def mixed_dynamic():
     holonomic = HolonomicDynamic(mass=1.0)
     diffdrive = DiffDriveDynamic(mass=2.0)
-    return MixedDynamic(
-        dynamics_batch=[holonomic, diffdrive],
-        num_agents_batch=[2, 3]
-    )
+    return MixedDynamic(dynamics_batch=[holonomic, diffdrive], num_agents_batch=[2, 3])
 
 
 def test_camar_v0_with_map_generator(key, dummy_map_generator):
@@ -105,7 +102,7 @@ def test_camar_v0_with_string_grid_class():
 def test_camar_v0_with_holonomic_dynamic_string():
     env = camar_v0(
         dynamic="HolonomicDynamic",
-        dynamic_kwargs={"accel": 10.0, "max_speed": 8.0, "damping": 0.5, "mass": 2.0, "dt": 0.02}
+        dynamic_kwargs={"accel": 10.0, "max_speed": 8.0, "damping": 0.5, "mass": 2.0, "dt": 0.02},
     )
 
     assert type(env) is Camar
@@ -138,8 +135,8 @@ def test_camar_v0_with_diffdrive_dynamic_string():
             "angular_speed_max": 3.0,
             "angular_speed_min": -1.0,
             "mass": 2.0,
-            "dt": 0.02
-        }
+            "dt": 0.02,
+        },
     )
 
     assert type(env) is Camar
@@ -166,11 +163,8 @@ def test_camar_v0_with_diffdrive_dynamic_class(diffdrive_dynamic):
 
 
 def test_camar_v0_with_mixed_dynamic_class(mixed_dynamic):
-    map_generator = string_grid(map_str=".....", num_agents=5) # num_agents matched with mixed_dynamic
-    env = camar_v0(
-        map_generator=map_generator,
-        dynamic=mixed_dynamic
-    )
+    map_generator = string_grid(map_str=".....", num_agents=5)  # num_agents matched with mixed_dynamic
+    env = camar_v0(map_generator=map_generator, dynamic=mixed_dynamic)
 
     assert type(env) is Camar
     assert type(env.dynamic) is MixedDynamic
@@ -181,10 +175,7 @@ def test_camar_v0_with_mixed_dynamic_class(mixed_dynamic):
 
 
 def test_camar_v0_with_custom_map_and_dynamic(key, dummy_map_generator, holonomic_dynamic):
-    env = camar_v0(
-        map_generator=dummy_map_generator,
-        dynamic=holonomic_dynamic
-    )
+    env = camar_v0(map_generator=dummy_map_generator, dynamic=holonomic_dynamic)
     obs, state = env.reset(key)
 
     assert type(env) is Camar
@@ -197,9 +188,7 @@ def test_camar_v0_with_custom_map_and_dynamic(key, dummy_map_generator, holonomi
 
 def test_camar_v0_with_string_grid_and_diffdrive(key, diffdrive_dynamic):
     env = camar_v0(
-        map_generator="string_grid",
-        map_kwargs={"map_str": "...", "num_agents": 2},
-        dynamic=diffdrive_dynamic
+        map_generator="string_grid", map_kwargs={"map_str": "...", "num_agents": 2}, dynamic=diffdrive_dynamic
     )
     obs, state = env.reset(key)
 
@@ -215,10 +204,7 @@ def test_camar_v0_with_mixed_dynamic_and_multiple_agents(key, mixed_dynamic):
     # Create a map generator with more free cells to support 5 agents
     map_str = """....."""
     map_generator = string_grid(map_str=map_str, num_agents=5)
-    env = camar_v0(
-        map_generator=map_generator,
-        dynamic=mixed_dynamic
-    )
+    env = camar_v0(map_generator=map_generator, dynamic=mixed_dynamic)
     obs, state = env.reset(key)
 
     assert type(env) is Camar

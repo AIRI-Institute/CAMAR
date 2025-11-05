@@ -15,24 +15,39 @@ def agent_pos():
     return jnp.array([[1.0, 1.0]])
 
 
+@pytest.fixture
+def landmark_pos():
+    return jnp.array([[0.0, 0.0]])
+
+
+@pytest.fixture
+def goal_pos():
+    return jnp.array([[2.0, 2.0]])
+
+
 class TestDiffDriveState:
-    def test_diffdrive_state_creation(self, key, agent_pos):
-        state = DiffDriveState.create(key, agent_pos)
+    def test_diffdrive_state_creation(self, key, agent_pos, landmark_pos, goal_pos):
+        state = DiffDriveState.create(key, landmark_pos, agent_pos, goal_pos, sizes=None)
 
         assert state.agent_pos.shape == (1, 2)
         assert state.agent_vel.shape == (1, 2)
         assert state.agent_angle.shape == (1, 1)
         assert jnp.array_equal(state.agent_pos, agent_pos)
         assert jnp.allclose(state.agent_vel, jnp.zeros((1, 2)))
-        assert jnp.allclose(state.agent_angle, jnp.zeros((1, 1)))
+        # angle should point towards goal
+        expected_angle = jnp.arctan2(
+            goal_pos[:, 1] - agent_pos[:, 1], goal_pos[:, 0] - agent_pos[:, 0]
+        ).reshape(1, 1)
+        assert jnp.allclose(state.agent_angle, expected_angle)
 
-    def test_diffdrive_state_agent_angle_initialization(self, key, agent_pos):
-        state = DiffDriveState.create(key, agent_pos)
+    def test_diffdrive_state_agent_angle_initialization(self, key, agent_pos, landmark_pos, goal_pos):
+        state = DiffDriveState.create(key, landmark_pos, agent_pos, goal_pos, sizes=None)
 
         assert state.agent_angle.shape == (1, 1)
-        assert jnp.allclose(
-            state.agent_angle, jnp.zeros((1, 1))
-        )  # may be will be changed
+        expected_angle = jnp.arctan2(
+            goal_pos[:, 1] - agent_pos[:, 1], goal_pos[:, 0] - agent_pos[:, 0]
+        ).reshape(1, 1)
+        assert jnp.allclose(state.agent_angle, expected_angle)
 
 
 class TestDiffDriveDynamic:
@@ -73,7 +88,8 @@ class TestDiffDriveDynamic:
     def test_diffdrive_dynamic_integration_basic(self, key, agent_pos):
         dynamic = DiffDriveDynamic()
 
-        state = DiffDriveState.create(key, agent_pos)
+        # initialize facing goal (angle is irrelevant for zero actions)
+        state = DiffDriveState.create(key, jnp.zeros((1, 2)), agent_pos, agent_pos + 1.0, sizes=None)
 
         force = jnp.zeros((1, 2))
         actions = jnp.zeros((1, 2))
@@ -99,9 +115,7 @@ class TestDiffDriveDynamic:
 
         # Should move forward in x direction
         assert new_state.agent_pos[0, 0] > state.agent_pos[0, 0]  # x increased
-        assert jnp.allclose(
-            new_state.agent_pos[0, 1], state.agent_pos[0, 1]
-        )  # y unchanged
+        assert jnp.allclose(new_state.agent_pos[0, 1], state.agent_pos[0, 1])  # y unchanged
         assert jnp.allclose(new_state.agent_angle, state.agent_angle)  # angle unchanged
 
     def test_diffdrive_dynamic_angle_normalization(self, key, agent_pos):
@@ -139,7 +153,11 @@ class TestDiffDriveDynamic:
     def test_diffdrive_dynamic_jit_compatibility(self, key, agent_pos):
         dynamic = DiffDriveDynamic()
 
-        state = DiffDriveState.create(key, agent_pos)
+        # two-agent state for batching
+        agent_pos_2 = jnp.array([[1.0, 1.0], [0.0, 0.0]])
+        goal_pos_2 = jnp.array([[2.0, 1.0], [0.0, 1.0]])
+        landmark_pos_2 = jnp.zeros((1, 2))
+        state = DiffDriveState.create(key, landmark_pos_2, agent_pos_2, goal_pos_2, sizes=None)
 
         force = jnp.array([[1.0, 0.0], [0.0, 1.0]])
         actions = jnp.array([[0.5, 0.0], [0.0, 0.5]])

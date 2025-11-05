@@ -1,14 +1,18 @@
 import dataclasses
 from typing import List, Type
 
+import jax
 import jax.numpy as jnp
 from flax import struct
 from jax.typing import ArrayLike
 
 from camar.dynamics.base import BaseDynamic, PhysicalState
+from camar.registry import register_dynamic
 
 
+@register_dynamic()
 class MixedDynamic(BaseDynamic):
+    # TODO: dynamics_batch is the list of class instances = impossible to configure using yaml
     def __init__(self, dynamics_batch: List[BaseDynamic], num_agents_batch: List[int]):
         self.dynamics_batch = dynamics_batch
         self.num_agents_batch = num_agents_batch
@@ -45,7 +49,14 @@ class MixedDynamic(BaseDynamic):
         )
 
         # Add the create method
-        def create(cls, key: ArrayLike, agent_pos: ArrayLike) -> "MixedState":
+        def create(
+            cls,
+            key: ArrayLike,
+            landmark_pos: ArrayLike,
+            agent_pos: ArrayLike,
+            goal_pos: ArrayLike,
+            sizes: "Sizes",  # noqa: F821 see maps/base.py
+        ) -> "MixedState":
             """Create a mixed state by creating individual states for each dynamic"""
             values = {}
 
@@ -53,11 +64,14 @@ class MixedDynamic(BaseDynamic):
                 # Create individual state for this dynamic
                 individual_state = dynamic.state_class.create(
                     key,
+                    landmark_pos,
                     agent_pos[i : i + num_agents],
+                    goal_pos[i : i + num_agents],
+                    jax.tree.map(lambda x: x[i : i + num_agents], sizes),
                 )
                 values[f"state_{i}"] = individual_state
 
-            values["agent_pos"] = agent_pos  # TODO: this is the copy - may be can be fixed
+            values["agent_pos"] = agent_pos  # TODO: this is the copy - may be can be fixed using jax.tree
 
             # Create the mixed state
             return cls(**values)

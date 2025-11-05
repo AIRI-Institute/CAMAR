@@ -7,6 +7,7 @@ from .base import base_map
 from .batched_string_grid import batched_string_grid
 from .const import PREGEN_DEVICE
 from .utils import detect_edges, get_movingai
+from camar.registry import register_map
 
 
 def preprocess(map_array, height, width, low_thr, return_edges=True):
@@ -22,6 +23,7 @@ def preprocess(map_array, height, width, low_thr, return_edges=True):
     return map_array
 
 
+@register_map()
 class movingai(batched_string_grid):
     def __init__(
         self,

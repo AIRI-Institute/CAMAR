@@ -33,10 +33,7 @@ class TestRandomGrid:
 
     def test_heterogeneous_agents(self):
         """Test heterogeneous agent sizes in random_grid"""
-        map_gen = random_grid(
-            num_agents=3,
-            agent_rad_range=(0.02, 0.08)
-        )
+        map_gen = random_grid(num_agents=3, agent_rad_range=(0.02, 0.08))
 
         assert not map_gen.homogeneous_agents
         assert map_gen.homogeneous_landmarks
@@ -46,13 +43,13 @@ class TestRandomGrid:
         key_g, landmark_pos, agent_pos, goal_pos, sizes = map_gen.reset(key)
 
         # Check that agent radii are generated
-        assert hasattr(sizes, 'agent_rad')
+        assert hasattr(sizes, "agent_rad")
         assert sizes.agent_rad.shape == (3,)
         assert jnp.all(sizes.agent_rad >= 0.02)
         assert jnp.all(sizes.agent_rad <= 0.08)
 
         # Check that goal radii are proportional to agent radii
-        assert hasattr(sizes, 'goal_rad')
+        assert hasattr(sizes, "goal_rad")
         assert sizes.goal_rad.shape == (3,)
         assert jnp.allclose(sizes.goal_rad, sizes.agent_rad / 2.5, atol=1e-6)
 
@@ -61,7 +58,7 @@ class TestRandomGrid:
         map_gen = random_grid(
             num_agents=2,
             agent_rad_range=(0.03, 0.03),  # Homogeneous agents
-            goal_rad_range=(0.01, 0.05)    # Heterogeneous goals
+            goal_rad_range=(0.01, 0.05),  # Heterogeneous goals
         )
 
         assert map_gen.homogeneous_agents
@@ -72,21 +69,17 @@ class TestRandomGrid:
         key_g, landmark_pos, agent_pos, goal_pos, sizes = map_gen.reset(key)
 
         # Check that goal radii are generated independently
-        assert hasattr(sizes, 'goal_rad')
+        assert hasattr(sizes, "goal_rad")
         assert sizes.goal_rad.shape == (2,)
         assert jnp.all(sizes.goal_rad >= 0.01)
         assert jnp.all(sizes.goal_rad <= 0.05)
 
         # Agent radii should be homogeneous
-        assert not hasattr(sizes, 'agent_rad')
+        assert not hasattr(sizes, "agent_rad")
 
     def test_heterogeneous_agents_and_goals(self):
         """Test both heterogeneous agents and goals in random_grid"""
-        map_gen = random_grid(
-            num_agents=4,
-            agent_rad_range=(0.02, 0.06),
-            goal_rad_range=(0.01, 0.03)
-        )
+        map_gen = random_grid(num_agents=4, agent_rad_range=(0.02, 0.06), goal_rad_range=(0.01, 0.03))
 
         assert not map_gen.homogeneous_agents
         assert map_gen.homogeneous_landmarks
@@ -96,8 +89,8 @@ class TestRandomGrid:
         key_g, landmark_pos, agent_pos, goal_pos, sizes = map_gen.reset(key)
 
         # Check both agent and goal radii
-        assert hasattr(sizes, 'agent_rad')
-        assert hasattr(sizes, 'goal_rad')
+        assert hasattr(sizes, "agent_rad")
+        assert hasattr(sizes, "goal_rad")
         assert sizes.agent_rad.shape == (4,)
         assert sizes.goal_rad.shape == (4,)
 
